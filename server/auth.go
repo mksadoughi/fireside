@@ -160,6 +160,14 @@ func (db *DB) CleanExpiredSessions() (int64, error) {
 
 // --- HTTP handlers ---
 
+// handleSetupStatus tells the UI whether setup has been completed.
+func handleSetupStatus(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		done, _ := db.IsSetupComplete()
+		writeJSON(w, http.StatusOK, map[string]any{"setup_complete": done})
+	}
+}
+
 // handleSetup creates the admin account. Only works if no setup has been done yet.
 func handleSetup(db *DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

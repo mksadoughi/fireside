@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// uiDir is resolved at startup to serve the UI files.
+var uiDir string
+
 func defaultDataDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -37,8 +40,17 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// Resolve UI directory (look for ../ui relative to the binary, or CWD)
+	uiDir = findUIDir()
+	if uiDir != "" {
+		log.Printf("Serving UI from: %s", uiDir)
+		mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir(uiDir))))
+		mux.HandleFunc("GET /", serveIndex)
+	}
+
 	// Public endpoints
-	mux.HandleFunc("GET /health", handleHealth)
+	mux.HandleFunc("GET /health", handleHealth(db))
+	mux.HandleFunc("GET /api/setup/status", handleSetupStatus(db))
 	mux.HandleFunc("POST /api/setup", handleSetup(db))
 	mux.HandleFunc("POST /api/auth/login", handleLogin(db))
 	mux.HandleFunc("POST /api/auth/logout", handleLogout(db))
@@ -73,11 +85,51 @@ func main() {
 	}
 }
 
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "ok",
-	})
+func handleHealth(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serverName, _ := db.GetConfig("server_name")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":      "ok",
+			"server_name": serverName,
+		})
+	}
+}
+
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" && r.URL.Path != "/index.html" {
+		// For any unmatched path, serve index.html (SPA-style routing)
+		http.ServeFile(w, r, filepath.Join(uiDir, "index.html"))
+		return
+	}
+	http.ServeFile(w, r, filepath.Join(uiDir, "index.html"))
+}
+
+func findUIDir() string {
+	// Check relative to CWD: ../ui (when running from server/ during development)
+	candidates := []string{
+		"../ui",
+		"ui",
+		"./ui",
+	}
+
+	// Also check relative to executable
+	if exe, err := os.Executable(); err == nil {
+		candidates = append(candidates, filepath.Join(filepath.Dir(exe), "..", "ui"))
+	}
+
+	for _, dir := range candidates {
+		abs, err := filepath.Abs(dir)
+		if err != nil {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(abs, "index.html")); err == nil {
+			return abs
+		}
+	}
+
+	log.Println("Warning: UI directory not found, web interface will not be available")
+	return ""
 }
 
 func handleListModels(ollama *OllamaClient) http.HandlerFunc {

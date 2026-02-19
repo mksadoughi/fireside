@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fireside</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="login-page" class="page">
+        <div class="login-container">
+            <div class="login-logo">🔥</div>
+            <h1 class="login-title" id="login-server-name">Fireside</h1>
+            <p class="login-subtitle">Private AI</p>
+
+            <div id="login-error" class="error-msg hidden"></div>
+
+            <form id="login-form" class="login-form">
+                <input type="text" id="login-username" placeholder="Username" autocomplete="username" required>
+                <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+                <button type="submit" class="btn-primary">Log in</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Setup Page (first run) -->
+    <div id="setup-page" class="page hidden">
+        <div class="login-container">
+            <div class="login-logo">🔥</div>
+            <h1 class="login-title">Welcome to Fireside</h1>
+            <p class="login-subtitle">Create your admin account</p>
+
+            <div id="setup-error" class="error-msg hidden"></div>
+
+            <form id="setup-form" class="login-form">
+                <input type="text" id="setup-server-name" placeholder="Server name (e.g. Kazem's AI)" required>
+                <input type="text" id="setup-username" placeholder="Admin username" autocomplete="username" required>
+                <input type="password" id="setup-password" placeholder="Password (min 6 chars)" autocomplete="new-password" required>
+                <button type="submit" class="btn-primary">Create Server</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Page -->
+    <div id="chat-page" class="page hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2 id="server-name">Fireside</h2>
+                <button id="new-chat-btn" class="btn-icon" title="New chat">+</button>
+            </div>
+            <div id="conversation-list" class="conversation-list"></div>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span id="display-name"></span>
+                    <button id="logout-btn" class="btn-text">Log out</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar toggle for mobile -->
+        <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
+
+        <!-- Main chat area -->
+        <main class="chat-main">
+            <div class="chat-header">
+                <select id="model-select" class="model-select"></select>
+            </div>
+
+            <div id="messages" class="messages">
+                <div id="welcome-msg" class="welcome-message">
+                    <div class="welcome-icon">🔥</div>
+                    <h2>How can I help you?</h2>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <form id="chat-form" class="chat-form">
+                    <textarea id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button type="submit" id="send-btn" class="btn-send" title="Send">↑</button>
+                </form>
+            </div>
+
+            <div class="chat-footer">
+                <span id="footer-text">Private AI</span>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
