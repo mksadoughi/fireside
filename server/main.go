@@ -42,12 +42,18 @@ func main() {
 	mux.HandleFunc("POST /api/setup", handleSetup(db))
 	mux.HandleFunc("POST /api/auth/login", handleLogin(db))
 	mux.HandleFunc("POST /api/auth/logout", handleLogout(db))
+	mux.HandleFunc("POST /api/auth/register", handleRegister(db))
 
 	// Authenticated endpoints
 	mux.HandleFunc("GET /api/auth/me", requireAuth(db, handleMe(db)))
 	mux.HandleFunc("GET /api/models", requireAuth(db, handleListModels(ollama)))
 	mux.HandleFunc("POST /api/chat", requireAuth(db, handleChat(ollama)))
 	mux.HandleFunc("POST /api/chat/stream", requireAuth(db, handleChatStream(ollama)))
+
+	// Admin endpoints
+	mux.HandleFunc("POST /api/admin/invites", requireAdmin(db, handleCreateInvite(db)))
+	mux.HandleFunc("GET /api/admin/invites", requireAdmin(db, handleListInvites(db)))
+	mux.HandleFunc("DELETE /api/admin/invites/{id}", requireAdmin(db, handleDeleteInvite(db)))
 
 	addr := fmt.Sprintf(":%d", *port)
 	server := &http.Server{
