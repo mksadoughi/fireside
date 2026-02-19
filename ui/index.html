@@ -52,6 +52,7 @@
             </div>
             <div id="conversation-list" class="conversation-list"></div>
             <div class="sidebar-footer">
+                <button id="admin-btn" class="btn-admin hidden">Admin Dashboard</button>
                 <div class="user-info">
                     <span id="display-name"></span>
                     <button id="logout-btn" class="btn-text">Log out</button>
@@ -86,6 +87,97 @@
                 <span id="footer-text">Private AI</span>
             </div>
         </main>
+    </div>
+
+    <!-- Admin Page -->
+    <div id="admin-page" class="page hidden">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h1>Admin Dashboard</h1>
+                <button id="admin-back-btn" class="btn-secondary">Back to Chat</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="invites">Invite Links</button>
+                <button class="admin-tab" data-tab="apikeys">API Keys</button>
+                <button class="admin-tab" data-tab="users">Users</button>
+            </div>
+
+            <!-- Invites Tab -->
+            <div id="tab-invites" class="admin-tab-content active">
+                <div class="admin-section-header">
+                    <h2>Invite Links</h2>
+                    <p class="admin-hint">Create invite links to let friends register on your server.</p>
+                </div>
+                <div class="admin-form-row">
+                    <input type="number" id="invite-max-uses" value="1" min="1" max="100" placeholder="Max uses">
+                    <select id="invite-expires">
+                        <option value="">Never expires</option>
+                        <option value="1h">1 hour</option>
+                        <option value="24h">24 hours</option>
+                        <option value="7d">7 days</option>
+                        <option value="30d">30 days</option>
+                    </select>
+                    <button id="create-invite-btn" class="btn-primary">Create Invite</button>
+                </div>
+                <div id="invite-created" class="invite-created hidden">
+                    <label>Invite URL (copy and share):</label>
+                    <div class="copy-row">
+                        <input type="text" id="invite-url-display" readonly>
+                        <button id="copy-invite-btn" class="btn-secondary">Copy</button>
+                    </div>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th>Token</th><th>Uses</th><th>Expires</th><th>Created</th><th></th></tr>
+                    </thead>
+                    <tbody id="invites-tbody"></tbody>
+                </table>
+                <p id="invites-empty" class="admin-empty hidden">No invite links yet.</p>
+            </div>
+
+            <!-- API Keys Tab -->
+            <div id="tab-apikeys" class="admin-tab-content">
+                <div class="admin-section-header">
+                    <h2>API Keys</h2>
+                    <p class="admin-hint">API keys let external tools (Python openai library, Cursor, etc.) connect to your server.</p>
+                </div>
+                <div class="admin-form-row">
+                    <input type="text" id="apikey-name" placeholder="Key name (e.g. my-laptop)" value="">
+                    <button id="create-apikey-btn" class="btn-primary">Create Key</button>
+                </div>
+                <div id="apikey-created" class="invite-created hidden">
+                    <label>API Key (save now, won't be shown again):</label>
+                    <div class="copy-row">
+                        <input type="text" id="apikey-display" readonly>
+                        <button id="copy-apikey-btn" class="btn-secondary">Copy</button>
+                    </div>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th>Name</th><th>Prefix</th><th>Last Used</th><th>Created</th><th></th></tr>
+                    </thead>
+                    <tbody id="apikeys-tbody"></tbody>
+                </table>
+                <p id="apikeys-empty" class="admin-empty hidden">No API keys yet.</p>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="tab-users" class="admin-tab-content">
+                <div class="admin-section-header">
+                    <h2>Registered Users</h2>
+                    <p class="admin-hint">Everyone who has created an account on this server.</p>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th>Username</th><th>Role</th><th>Joined</th></tr>
+                    </thead>
+                    <tbody id="users-tbody"></tbody>
+                </table>
+                <p id="users-empty" class="admin-empty hidden">No users yet.</p>
+            </div>
+        </div>
     </div>
 
     <script src="/static/app.js"></script>

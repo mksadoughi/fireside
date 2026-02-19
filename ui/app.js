@@ -53,10 +53,12 @@ function showPage(page) {
     loginPage.classList.add('hidden');
     setupPage.classList.add('hidden');
     chatPage.classList.add('hidden');
+    document.getElementById('admin-page').classList.add('hidden');
 
     if (page === 'login') loginPage.classList.remove('hidden');
     else if (page === 'setup') setupPage.classList.remove('hidden');
     else if (page === 'chat') chatPage.classList.remove('hidden');
+    else if (page === 'admin') document.getElementById('admin-page').classList.remove('hidden');
 }
 
 // --- Setup ---
@@ -116,6 +118,14 @@ loginForm.addEventListener('submit', async (e) => {
 async function enterChat() {
     showPage('chat');
     displayName.textContent = currentUser.display_name || currentUser.username;
+
+    // Show admin button if user is admin
+    const adminBtn = document.getElementById('admin-btn');
+    if (currentUser.is_admin) {
+        adminBtn.classList.remove('hidden');
+    } else {
+        adminBtn.classList.add('hidden');
+    }
 
     // Load server name
     try {
@@ -335,6 +345,184 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 
 // --- New chat ---
 document.getElementById('new-chat-btn').addEventListener('click', startNewChat);
+
+// --- Admin Dashboard ---
+const adminPage = document.getElementById('admin-page');
+const adminBtn = document.getElementById('admin-btn');
+const adminBackBtn = document.getElementById('admin-back-btn');
+
+adminBtn.addEventListener('click', () => openAdmin());
+adminBackBtn.addEventListener('click', () => {
+    showPage('chat');
+});
+
+// Admin tabs
+document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+});
+
+async function openAdmin() {
+    showPage('admin');
+    await Promise.all([loadInvites(), loadAPIKeys(), loadUsers()]);
+}
+
+// --- Invites ---
+document.getElementById('create-invite-btn').addEventListener('click', async () => {
+    const maxUses = parseInt(document.getElementById('invite-max-uses').value) || 1;
+    const expiresIn = document.getElementById('invite-expires').value;
+
+    try {
+        const resp = await fetch('/api/admin/invites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ max_uses: maxUses, expires_in: expiresIn }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) return;
+
+        const urlDisplay = document.getElementById('invite-url-display');
+        urlDisplay.value = data.url;
+        document.getElementById('invite-created').classList.remove('hidden');
+
+        await loadInvites();
+    } catch {}
+});
+
+document.getElementById('copy-invite-btn').addEventListener('click', () => {
+    const urlDisplay = document.getElementById('invite-url-display');
+    navigator.clipboard.writeText(urlDisplay.value);
+    document.getElementById('copy-invite-btn').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('copy-invite-btn').textContent = 'Copy', 2000);
+});
+
+async function loadInvites() {
+    try {
+        const resp = await fetch('/api/admin/invites');
+        const data = await resp.json();
+        const invites = data.invites || [];
+        const tbody = document.getElementById('invites-tbody');
+        const empty = document.getElementById('invites-empty');
+
+        if (invites.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        tbody.innerHTML = invites.map(inv => `
+            <tr>
+                <td class="mono">${escapeHtml(inv.token.substring(0, 12))}...</td>
+                <td>${inv.uses} / ${inv.max_uses}</td>
+                <td>${inv.expires_at ? formatDate(inv.expires_at) : 'Never'}</td>
+                <td>${formatDate(inv.created_at)}</td>
+                <td><button class="btn-danger-sm" onclick="deleteInvite(${inv.id})">Revoke</button></td>
+            </tr>
+        `).join('');
+    } catch {}
+}
+
+async function deleteInvite(id) {
+    await fetch(`/api/admin/invites/${id}`, { method: 'DELETE' });
+    await loadInvites();
+}
+
+// --- API Keys ---
+document.getElementById('create-apikey-btn').addEventListener('click', async () => {
+    const name = document.getElementById('apikey-name').value.trim() || 'default';
+
+    try {
+        const resp = await fetch('/api/admin/api-keys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) return;
+
+        const keyDisplay = document.getElementById('apikey-display');
+        keyDisplay.value = data.api_key;
+        document.getElementById('apikey-created').classList.remove('hidden');
+
+        await loadAPIKeys();
+    } catch {}
+});
+
+document.getElementById('copy-apikey-btn').addEventListener('click', () => {
+    const keyDisplay = document.getElementById('apikey-display');
+    navigator.clipboard.writeText(keyDisplay.value);
+    document.getElementById('copy-apikey-btn').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('copy-apikey-btn').textContent = 'Copy', 2000);
+});
+
+async function loadAPIKeys() {
+    try {
+        const resp = await fetch('/api/admin/api-keys');
+        const data = await resp.json();
+        const keys = data.api_keys || [];
+        const tbody = document.getElementById('apikeys-tbody');
+        const empty = document.getElementById('apikeys-empty');
+
+        if (keys.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        tbody.innerHTML = keys.map(k => `
+            <tr>
+                <td>${escapeHtml(k.name)}</td>
+                <td class="mono">${escapeHtml(k.key_prefix)}...</td>
+                <td>${k.last_used_at ? formatDate(k.last_used_at) : 'Never'}</td>
+                <td>${formatDate(k.created_at)}</td>
+                <td><button class="btn-danger-sm" onclick="deleteAPIKey(${k.id})">Revoke</button></td>
+            </tr>
+        `).join('');
+    } catch {}
+}
+
+async function deleteAPIKey(id) {
+    await fetch(`/api/admin/api-keys/${id}`, { method: 'DELETE' });
+    await loadAPIKeys();
+}
+
+// --- Users ---
+async function loadUsers() {
+    try {
+        const resp = await fetch('/api/admin/users');
+        const data = await resp.json();
+        const users = data.users || [];
+        const tbody = document.getElementById('users-tbody');
+        const empty = document.getElementById('users-empty');
+
+        if (users.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td>${escapeHtml(u.display_name || u.username)}</td>
+                <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">User</span>'}</td>
+                <td>${formatDate(u.created_at)}</td>
+            </tr>
+        `).join('');
+    } catch {}
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 // --- Sidebar toggle (mobile) ---
 sidebarToggle.addEventListener('click', () => {

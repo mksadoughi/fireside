@@ -70,6 +70,8 @@ func main() {
 	mux.HandleFunc("GET /api/admin/invites", requireAdmin(db, handleListInvites(db)))
 	mux.HandleFunc("DELETE /api/admin/invites/{id}", requireAdmin(db, handleDeleteInvite(db)))
 
+	mux.HandleFunc("GET /api/admin/users", requireAdmin(db, handleListUsers(db)))
+
 	// Admin: API key management
 	mux.HandleFunc("POST /api/admin/api-keys", requireAdmin(db, handleCreateAPIKey(db)))
 	mux.HandleFunc("GET /api/admin/api-keys", requireAdmin(db, handleListAPIKeys(db)))

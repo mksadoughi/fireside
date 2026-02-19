@@ -101,6 +101,28 @@ func (db *DB) GetUserByID(id int) (*User, error) {
 	return &user, nil
 }
 
+// ListUsers returns all registered users (for admin dashboard).
+func (db *DB) ListUsers() ([]User, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, username, display_name, is_admin, created_at
+		FROM users ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.IsAdmin, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
 // --- Session management ---
 
 // CreateSession creates a new session for a user. Returns the session ID (cookie value).
@@ -287,6 +309,20 @@ func handleMe(db *DB) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"user": user})
+	}
+}
+
+func handleListUsers(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users, err := db.ListUsers()
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list users"})
+			return
+		}
+		if users == nil {
+			users = []User{}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"users": users})
 	}
 }
 
