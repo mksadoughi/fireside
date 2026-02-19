@@ -6,13 +6,32 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 )
+
+func defaultDataDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ".fireside"
+	}
+	return filepath.Join(home, ".fireside")
+}
 
 func main() {
 	port := flag.Int("port", 3000, "port to listen on")
 	ollamaURL := flag.String("ollama-url", "http://localhost:11434", "Ollama API base URL")
+	dataDir := flag.String("data-dir", defaultDataDir(), "data directory for database and config")
 	flag.Parse()
+
+	dbPath := filepath.Join(*dataDir, "data.db")
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+	log.Printf("Database: %s", dbPath)
 
 	ollama := NewOllamaClient(*ollamaURL)
 
