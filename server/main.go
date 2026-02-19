@@ -47,8 +47,11 @@ func main() {
 	// Authenticated endpoints
 	mux.HandleFunc("GET /api/auth/me", requireAuth(db, handleMe(db)))
 	mux.HandleFunc("GET /api/models", requireAuth(db, handleListModels(ollama)))
-	mux.HandleFunc("POST /api/chat", requireAuth(db, handleChat(ollama)))
-	mux.HandleFunc("POST /api/chat/stream", requireAuth(db, handleChatStream(ollama)))
+	mux.HandleFunc("POST /api/chat", requireAuth(db, handleChatWithHistory(db, ollama)))
+	mux.HandleFunc("POST /api/chat/stream", requireAuth(db, handleChatStreamWithHistory(db, ollama)))
+	mux.HandleFunc("GET /api/conversations", requireAuth(db, handleListConversations(db)))
+	mux.HandleFunc("GET /api/conversations/{id}", requireAuth(db, handleGetConversation(db)))
+	mux.HandleFunc("DELETE /api/conversations/{id}", requireAuth(db, handleDeleteConversation(db)))
 
 	// Admin endpoints
 	mux.HandleFunc("POST /api/admin/invites", requireAdmin(db, handleCreateInvite(db)))
@@ -92,55 +95,78 @@ func handleListModels(ollama *OllamaClient) http.HandlerFunc {
 	}
 }
 
-func handleChat(ollama *OllamaClient) http.HandlerFunc {
+// ConversationChatRequest extends ChatRequest with an optional conversation ID.
+type ConversationChatRequest struct {
+	ConversationID *int   `json:"conversation_id"`
+	Model          string `json:"model"`
+	Message        string `json:"message"`
+}
+
+func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ChatRequest
+		user := UserFromContext(r.Context())
+		var req ConversationChatRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error": "invalid JSON body"}`, http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+		if req.Model == "" || req.Message == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "model and message are required"})
 			return
 		}
 
-		if req.Model == "" {
-			http.Error(w, `{"error": "model is required"}`, http.StatusBadRequest)
-			return
-		}
-		if len(req.Messages) == 0 {
-			http.Error(w, `{"error": "messages array is required"}`, http.StatusBadRequest)
+		convo, messages, err := prepareChat(db, user, &req)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
 
-		resp, err := ollama.Chat(req.Model, req.Messages)
+		// Add current message to history
+		messages = append(messages, ChatMessage{Role: "user", Content: req.Message})
+
+		resp, err := ollama.Chat(req.Model, messages)
 		if err != nil {
 			log.Printf("Ollama error: %v", err)
-			http.Error(w, fmt.Sprintf(`{"error": "inference failed: %s"}`, err), http.StatusBadGateway)
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("inference failed: %v", err)})
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		// Save both messages
+		db.AddMessage(convo.ID, "user", req.Message, nil)
+		db.AddMessage(convo.ID, "assistant", resp.Message.Content, nil)
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"conversation_id": convo.ID,
+			"model":           resp.Model,
+			"message":         resp.Message,
+		})
 	}
 }
 
-func handleChatStream(ollama *OllamaClient) http.HandlerFunc {
+func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ChatRequest
+		user := UserFromContext(r.Context())
+		var req ConversationChatRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error": "invalid JSON body"}`, http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+		if req.Model == "" || req.Message == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "model and message are required"})
 			return
 		}
 
-		if req.Model == "" {
-			http.Error(w, `{"error": "model is required"}`, http.StatusBadRequest)
+		convo, messages, err := prepareChat(db, user, &req)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		if len(req.Messages) == 0 {
-			http.Error(w, `{"error": "messages array is required"}`, http.StatusBadRequest)
-			return
-		}
+
+		messages = append(messages, ChatMessage{Role: "user", Content: req.Message})
 
 		flusher, ok := w.(http.Flusher)
 		if !ok {
-			http.Error(w, `{"error": "streaming not supported"}`, http.StatusInternalServerError)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "streaming not supported"})
 			return
 		}
 
@@ -148,7 +174,16 @@ func handleChatStream(ollama *OllamaClient) http.HandlerFunc {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 
-		err := ollama.ChatStream(req.Model, req.Messages, func(chunk StreamChunk) error {
+		// Send conversation_id as first event so the client knows which convo this is
+		fmt.Fprintf(w, "data: {\"conversation_id\":%d}\n\n", convo.ID)
+		flusher.Flush()
+
+		// Save user message
+		db.AddMessage(convo.ID, "user", req.Message, nil)
+
+		var fullResponse string
+		err = ollama.ChatStream(req.Model, messages, func(chunk StreamChunk) error {
+			fullResponse += chunk.Content
 			data, _ := json.Marshal(chunk)
 			fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
@@ -157,12 +192,117 @@ func handleChatStream(ollama *OllamaClient) http.HandlerFunc {
 
 		if err != nil {
 			log.Printf("Stream error: %v", err)
-			fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err)
+			fmt.Fprintf(w, "data: {\"error\":\"%s\"}\n\n", err)
 			flusher.Flush()
 			return
 		}
 
+		// Save assistant response
+		db.AddMessage(convo.ID, "assistant", fullResponse, nil)
+
 		fmt.Fprintf(w, "data: [DONE]\n\n")
 		flusher.Flush()
+	}
+}
+
+// prepareChat loads or creates a conversation and its message history.
+func prepareChat(db *DB, user *User, req *ConversationChatRequest) (*Conversation, []ChatMessage, error) {
+	var convo *Conversation
+	var chatMessages []ChatMessage
+
+	if req.ConversationID != nil {
+		var err error
+		convo, err = db.GetConversation(*req.ConversationID, user.ID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("database error: %v", err)
+		}
+		if convo == nil {
+			return nil, nil, fmt.Errorf("conversation not found")
+		}
+
+		// Load existing messages as context for the LLM
+		stored, err := db.GetMessages(convo.ID, user.ID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("loading messages: %v", err)
+		}
+		for _, m := range stored {
+			chatMessages = append(chatMessages, ChatMessage{Role: m.Role, Content: m.Content})
+		}
+	} else {
+		// Create new conversation, use first ~50 chars of message as title
+		title := req.Message
+		if len(title) > 50 {
+			title = title[:50] + "..."
+		}
+		var err error
+		convo, err = db.CreateConversation(user.ID, req.Model, title)
+		if err != nil {
+			return nil, nil, fmt.Errorf("creating conversation: %v", err)
+		}
+	}
+
+	return convo, chatMessages, nil
+}
+
+func handleListConversations(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		convos, err := db.ListConversations(user.ID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list conversations"})
+			return
+		}
+		if convos == nil {
+			convos = []Conversation{}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"conversations": convos})
+	}
+}
+
+func handleGetConversation(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		var id int
+		if _, err := fmt.Sscanf(r.PathValue("id"), "%d", &id); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid conversation ID"})
+			return
+		}
+
+		convo, err := db.GetConversation(id, user.ID)
+		if err != nil || convo == nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+			return
+		}
+
+		messages, err := db.GetMessages(convo.ID, user.ID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load messages"})
+			return
+		}
+		if messages == nil {
+			messages = []Message{}
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"conversation": convo,
+			"messages":     messages,
+		})
+	}
+}
+
+func handleDeleteConversation(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		var id int
+		if _, err := fmt.Sscanf(r.PathValue("id"), "%d", &id); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid conversation ID"})
+			return
+		}
+
+		if err := db.DeleteConversation(id, user.ID); err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 	}
 }
