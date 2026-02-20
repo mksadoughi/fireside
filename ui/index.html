@@ -91,6 +91,7 @@
                 <button id="admin-btn" class="btn-admin hidden">Dashboard</button>
                 <div class="user-info">
                     <span id="display-name"></span>
+                    <button id="change-pw-btn" class="btn-text">Password</button>
                     <button id="logout-btn" class="btn-text">Log out</button>
                 </div>
             </div>
@@ -121,6 +122,24 @@
                 <span id="footer-text">Private AI</span>
             </div>
         </main>
+
+        <!-- Change Password Modal -->
+        <div id="password-modal" class="modal-overlay hidden">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>Change Password</h2>
+                    <button id="password-modal-close" class="modal-close">&times;</button>
+                </div>
+                <form id="user-change-pw-form" class="modal-form">
+                    <div id="user-pw-error" class="error-msg hidden"></div>
+                    <div id="user-pw-success" class="success-msg hidden"></div>
+                    <input type="password" id="user-current-pw" placeholder="Current password" required autocomplete="current-password">
+                    <input type="password" id="user-new-pw" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                    <input type="password" id="user-confirm-pw" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                    <button type="submit" class="btn-primary">Update Password</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Admin Dashboard -->

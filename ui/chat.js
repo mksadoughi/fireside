@@ -238,6 +238,62 @@ function scrollToBottom() {
 // --- Event listeners ---
 document.getElementById('new-chat-btn').addEventListener('click', startNewChat);
 
+// --- Change Password Modal ---
+const pwModal = document.getElementById('password-modal');
+
+document.getElementById('change-pw-btn').addEventListener('click', () => {
+    pwModal.classList.remove('hidden');
+});
+
+document.getElementById('password-modal-close').addEventListener('click', () => {
+    pwModal.classList.add('hidden');
+});
+
+pwModal.addEventListener('click', (e) => {
+    if (e.target === pwModal) pwModal.classList.add('hidden');
+});
+
+document.getElementById('user-change-pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('user-pw-error');
+    const successEl = document.getElementById('user-pw-success');
+    errorEl.classList.add('hidden');
+    successEl.classList.add('hidden');
+
+    const current = document.getElementById('user-current-pw').value;
+    const newPw = document.getElementById('user-new-pw').value;
+    const confirm = document.getElementById('user-confirm-pw').value;
+
+    if (newPw !== confirm) {
+        errorEl.textContent = 'Passwords do not match.';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const resp = await fetch('/api/auth/password', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_password: current, new_password: newPw }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            successEl.textContent = 'Password updated.';
+            successEl.classList.remove('hidden');
+            document.getElementById('user-current-pw').value = '';
+            document.getElementById('user-new-pw').value = '';
+            document.getElementById('user-confirm-pw').value = '';
+            setTimeout(() => pwModal.classList.add('hidden'), 1500);
+        } else {
+            errorEl.textContent = data.error || 'Failed to update password.';
+            errorEl.classList.remove('hidden');
+        }
+    } catch {
+        errorEl.textContent = 'Connection failed.';
+        errorEl.classList.remove('hidden');
+    }
+});
+
 // Delegated click handler for code block copy buttons
 messagesDiv.addEventListener('click', (e) => {
     const btn = e.target.closest('.code-copy-btn');

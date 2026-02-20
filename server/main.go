@@ -67,6 +67,7 @@ func main() {
 	mux.HandleFunc("GET /api/conversations", requireAuth(db, handleListConversations(db)))
 	mux.HandleFunc("GET /api/conversations/{id}", requireAuth(db, handleGetConversation(db)))
 	mux.HandleFunc("DELETE /api/conversations/{id}", requireAuth(db, handleDeleteConversation(db)))
+	mux.HandleFunc("PUT /api/auth/password", requireAuth(db, handleChangePassword(db)))
 
 	// Admin endpoints
 	mux.HandleFunc("POST /api/admin/invites", requireAdmin(db, handleCreateInvite(db)))
