@@ -392,14 +392,23 @@ func Encrypt(plaintext, key []byte) (ciphertext, iv []byte, err error) {
 
 ---
 
-## Open Questions (to resolve in Phase 0)
+## Open Questions / Decision Log
+
+**Resolved:**
 
 - [x] Which chatbot UI approach? **Custom HTML/CSS/JS** — no framework, no fork, no build step. Simpler than forking NextChat (87k-star React app). Every line is ours, easy to debug and extend. Can upgrade to a richer UI later if needed.
 - [x] Go SQLite driver: **`modernc.org/sqlite`** (pure Go). No CGO = no C compiler needed, cross-compilation works out of the box, negligible performance difference at <100 users.
 - [x] Encryption key design: **Per-user keys** — each invite generates a unique AES-256 key. Stored in `invite_links` and copied to `users` at signup. No shared key.
-- [ ] Key rotation: MLP: no. V2: yes (per-user rotation without affecting other users).
-- [ ] Message storage: store encrypted (as designed) or plaintext? Encrypted adds defense in depth — even reading the DB file directly shows gibberish. Server has keys in memory regardless.
-- [ ] Conversation title generation: auto-generate from first message on the server side (requires decrypted content), or let the Client generate and send it?
-- [ ] SDK streaming: how to handle streaming + encryption in the Python/Node SDK? Each chunk needs its own IV.
-- [ ] Admin dashboard scope for MLP: how minimal can it be while still being functional?
+- [x] Message storage: **Plaintext for MLP** (encryption fields in schema are pre-wired for Phase 3). Encrypted storage comes with the encryption phase.
+- [x] Conversation title generation: **Server-side, auto-generated** from first ~50 chars of first message.
+- [x] Admin dashboard scope for MLP: **Full sidebar dashboard** with Overview, Models, Invites, Users, API Keys, Settings tabs. Premium feel, not a minimal admin page.
+- [x] Admin dashboard access: **Auth-protected, accessible from any device** (not localhost-only). Same model as Plex, Jellyfin, Home Assistant. Login rate limiting for brute force protection.
+- [x] API key ownership: **Host-only**. Clients who need API access receive keys from the Host directly.
+- [x] API format: **OpenAI-compatible** (not Ollama format). Maximizes tool compatibility.
+- [x] Default port: **7654** (avoids conflicts with React/3000, Flask/5000, Django/8000, Ollama/11434).
+
+**Deferred to post-MLP:**
+
+- [ ] Key rotation: per-user rotation without affecting other users.
+- [ ] SDK streaming: how to handle streaming + encryption in the Python/Node SDK (each chunk needs its own IV).
 - [ ] Password reset: Host should be able to reset a Client's password from admin panel.

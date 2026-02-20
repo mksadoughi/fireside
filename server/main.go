@@ -23,7 +23,7 @@ func defaultDataDir() string {
 }
 
 func main() {
-	port := flag.Int("port", 3000, "port to listen on")
+	port := flag.Int("port", 7654, "port to listen on")
 	ollamaURL := flag.String("ollama-url", "http://localhost:11434", "Ollama API base URL")
 	dataDir := flag.String("data-dir", defaultDataDir(), "data directory for database and config")
 	flag.Parse()

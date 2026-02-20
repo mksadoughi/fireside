@@ -45,7 +45,7 @@ This document describes the system architecture — what components exist, how t
 │  ┌───────────────────────┴──────────────────────────────────────┐   │
 │  │                    cloudflared                                 │   │
 │  │  (Outbound tunnel to Cloudflare edge)                         │   │
-│  │  Maps localhost:3000 → abc123.fireside.dev                    │   │
+│  │  Maps localhost:7654 → abc123.fireside.dev                    │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
          │
@@ -111,7 +111,7 @@ External dependency (installed separately). Creates an outbound tunnel from the 
 **We interact with it by:**
 - Running `cloudflared tunnel create <name>` to create a tunnel
 - Running `cloudflared tunnel route dns <tunnel-id> <subdomain>` to assign DNS
-- Writing a config file that maps `localhost:3000` to the tunnel
+- Writing a config file that maps `localhost:7654` to the tunnel
 - Starting it as a background service
 
 ### 4. SQLite Database
@@ -154,7 +154,7 @@ Host runs install script
   → Script installs: Go binary, Ollama, cloudflared
   → Script starts Go binary
   → Go binary detects first run (no data.db)
-  → Serves setup wizard at localhost:3000/setup
+  → Serves setup wizard at localhost:7654/#/setup
   → Host completes wizard:
       1. Hardware detection (calls Ollama API for GPU info)
       2. Model selection (calls Ollama pull)
@@ -366,7 +366,7 @@ All connections are outbound from the Host's machine.
 | **Cloudflare edge** | Can't read message content | Application-layer encryption — only sees encrypted blobs |
 | **Host server ↔ Ollama** | Localhost only | Ollama binds to 127.0.0.1, not exposed externally |
 | **SQLite data at rest** | Conversation content | Messages stored encrypted with per-user keys |
-| **Admin dashboard** | Host-only access | Only served on localhost, not through the tunnel |
+| **Admin dashboard** | Host-only access | Auth-protected (session + admin role check), accessible from any device via tunnel. Login rate limiting prevents brute force. |
 
 ---
 

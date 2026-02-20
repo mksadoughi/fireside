@@ -378,7 +378,7 @@ This makes the trust explicit. The Client always knows whose machine their data 
 - Which models are available (Host decides — same as ChatGPT deciding which GPT version is available)
 - Other users' conversations or accounts
 - Server settings, GPU stats, or admin functions
-- The admin dashboard (only accessible from the Host's local machine)
+- The admin dashboard (only accessible to the Host, protected by auth)
 
 ---
 
@@ -446,7 +446,7 @@ curl https://abc123.fireside.dev/v1/chat/completions \
 **Key rules:**
 - Keys are tied to user accounts. Usage is tracked per user. Deleting a user kills their keys.
 - Per-key rate limiting (e.g., 100 requests/hour default). Host adjusts from admin panel.
-- Both the Host and Clients can generate keys — Host from the admin dashboard, Clients from their settings page.
+- Only the Host can create API keys (from the admin dashboard). If a Client needs API access, the Host creates a key and shares it directly.
 - Host can see and revoke all keys from the admin panel.
 
 **Encrypted API calls:**
@@ -498,7 +498,7 @@ This installs three things: the Fireside server binary, Ollama, and cloudflared.
 
 **Step 2: Setup Wizard (local web UI)**
 
-The server starts and opens `http://localhost:3000/setup` in the Host's browser. This is a step-by-step wizard:
+The server starts and opens `http://localhost:7654` in the Host's browser. This is a step-by-step wizard:
 
 1. **Hardware detection** — Server scans the machine. Shows: GPU model, VRAM, system RAM, OS. The Host sees what they have and what they can run.
 
@@ -524,7 +524,7 @@ The server starts and opens `http://localhost:3000/setup` in the Host's browser.
 
 **Step 3: Admin Dashboard**
 
-After setup, the Host manages everything from `http://localhost:3000/admin`:
+After setup, the Host manages everything from the Dashboard (accessible from any device, auth-protected):
 
 - **Invite links** — Create invite links with optional expiry or usage limit. Copy/share with family.
 - **Users** — See who has accounts. Delete/disable users.
@@ -608,5 +608,9 @@ The implementation details are in separate documents:
 
 > **Decision log:**
 > - Chat UI: Custom HTML/CSS/JS (not a NextChat fork). Simpler, no framework dependency, fully understood codebase. Can upgrade later if needed.
+> - Admin dashboard: Auth-protected, accessible from any device (not localhost-only). Same security model as Plex, Jellyfin, Home Assistant, etc.
+> - API keys: Only the Host creates them. Clients who need API access receive keys from the Host directly.
+> - API format: OpenAI-compatible (not Ollama). Maximizes tool compatibility (Cursor, Python openai SDK, LangChain, etc.)
 > - Admin: Basic admin API (curl-testable) ships in Phase 1 alongside the backend. Browser-based admin page comes in Phase 2.
+> - Default port: 7654 (avoids conflicts with React/3000, Flask/5000, Django/8000, Ollama/11434).
 

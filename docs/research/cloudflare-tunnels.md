@@ -10,7 +10,7 @@ Reference document for Cloudflare Tunnel setup options in Fireside.
 
 **Command:**
 ```bash
-cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:7654
 ```
 
 **What happens:**
@@ -60,7 +60,7 @@ tunnel: <UUID>
 credentials-file: /path/to/credentials.json
 ingress:
   - hostname: kazems-ai.fireside.dev
-    service: http://localhost:3000
+    service: http://localhost:7654
   - service: http_status:404
 EOF
 

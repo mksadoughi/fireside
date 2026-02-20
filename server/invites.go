@@ -158,7 +158,7 @@ func handleCreateInvite(db *DB) http.HandlerFunc {
 		// Build the full invite URL (the Host will share this)
 		serverName, _ := db.GetConfig("tunnel_url")
 		if serverName == "" {
-			serverName = "http://localhost:3000"
+			serverName = "http://localhost:7654"
 		}
 		inviteURL := fmt.Sprintf("%s/invite/%s#key=%s", serverName, invite.Token, encKeyB64)
 

@@ -5,7 +5,7 @@
 **Two separate web properties:**
 
 - **Project Website** (e.g. `getfireside.com`) -- Static marketing/docs. No backend, no user data. Think: jellyfin.org.
-- **Server UI** (e.g. `localhost:7654` or `ai.kazem.com`) -- The actual product running on a host's hardware. This is what hosts and guests interact with.
+- **Server UI** (e.g. `localhost:7654` or `ai.kazem.com`) -- The actual product running on a host's hardware. This is what hosts and clients interact with.
 
 The Plex analogy: `plex.tv` is the project website. A friend's Plex server at `192.168.1.5:32400` is the server UI.
 
@@ -13,9 +13,9 @@ The Plex analogy: `plex.tv` is the project website. A friend's Plex server at `1
 
 - Zero dependencies. Fireside ships as a single binary that handles everything, including downloading and managing the AI runtime (Ollama) automatically. The host should never need to install anything else.
 - The host's primary job is managing the server. Their default view is the Dashboard.
-- The guest's only job is using AI. Their default view is Chat. They never see admin UI.
+- The client's only job is using AI. Their default view is Chat. They never see admin UI.
 - **Two equally important ways to use Fireside:** the Chat UI (browser-based, zero setup) and the API (OpenAI-compatible, connect from any tool). The chat UI is the easiest entry point, but the API is what makes Fireside a platform — it lets users connect Cursor, Python scripts, custom apps, or anything that speaks the OpenAI format. Both are first-class features from day one.
-- Every screen must work well on mobile. A major use case is the host chatting from their own phone, or a guest clicking an invite link on their phone.
+- Every screen must work well on mobile. A major use case is the host chatting from their own phone, or a client clicking an invite link on their phone.
 - The product should feel personal -- each server is branded with the host's chosen name.
 - The product should feel premium, not like a prototype. Dashboard uses a proper sidebar layout, UI is polished, interactions are smooth.
 - Errors and edge cases must be handled gracefully, never a blank screen or cryptic message.
@@ -33,11 +33,11 @@ The Plex analogy: `plex.tv` is the project website. A friend's Plex server at `1
 
 Both use cases coexist naturally. A host might start using Fireside solo and later invite friends, or do both from day one.
 
-**Guest (Invited User):** Receives a link from the host, registers, chats with AI. Technical knowledge: assume zero. They should never need to understand what "Ollama" or "model" means -- they just talk to AI.
+**Client (Invited User):** Receives a link from the host, registers, chats with AI. Technical knowledge: assume zero. They should never need to understand what "Ollama" or "model" means -- they just talk to AI.
 
-**Guest API access:** Guests don't create their own API keys. If a guest needs API access (e.g. a developer friend who wants to connect from their IDE), the host creates an API key from the Dashboard and shares it with them directly. This keeps the host in control of programmatic access. Self-serve guest API keys may be added in a future version.
+**Client API access:** Clients don't create their own API keys. If a client needs API access (e.g. a developer friend who wants to connect from their IDE), the host creates an API key from the Dashboard and shares it with them directly. This keeps the host in control of programmatic access. Self-serve client API keys may be added in a future version.
 
-**Multi-device usage:** Both hosts and guests can use Fireside from any device (desktop, laptop, phone, tablet) by visiting the server URL. Conversations sync automatically since everything is stored server-side. This should feel completely natural with no special setup.
+**Multi-device usage:** Both hosts and clients can use Fireside from any device (desktop, laptop, phone, tablet) by visiting the server URL. Conversations sync automatically since everything is stored server-side. This should feel completely natural with no special setup.
 
 ---
 
@@ -104,7 +104,7 @@ Fireside Server
 |
 |-- #/setup                First-run setup (host only, one-time)
 |-- #/login                Login (all users)
-|-- #/invite/:token        Invite registration (guests clicking an invite link)
+|-- #/invite/:token        Invite registration (clients clicking an invite link)
 |
 |-- #/dashboard            Host Dashboard (admin only, single page with tabs)
 |   |-- [Overview tab]     Status, stats, getting-started checklist
@@ -123,9 +123,9 @@ Fireside Server
 - Not logged in + setup complete -> `#/login`
 - Navigated to `#/invite/:token` -> invite registration (regardless of login state)
 - Logged in as admin -> `#/dashboard`
-- Logged in as guest -> `#/chat`
+- Logged in as client -> `#/chat`
 - Admin can freely switch between `#/dashboard` and `#/chat`
-- Guest attempting to access `#/dashboard` -> redirected to `#/chat`
+- Client attempting to access `#/dashboard` -> redirected to `#/chat`
 
 **Why hash-based SPA routing:** Simplest to build in vanilla JS. No server-side routing changes needed. The Go server just serves index.html for all paths.
 
@@ -160,7 +160,7 @@ The setup wizard should take under 60 seconds. Model downloading happens later f
 
 ### Screen 2: Login
 
-**Who:** Everyone (host and guests returning).
+**Who:** Everyone (host and clients returning).
 **When:** Not logged in, setup already complete.
 
 - Fire logo
@@ -180,7 +180,7 @@ The login page shows the server's name so returning users (including the host on
 
 ### Screen 3: Invite Registration
 
-**Who:** Friends clicking an invite link.
+**Who:** Clients clicking an invite link.
 **When:** Navigating to `#/invite/:token`
 
 **Valid invite state:**
@@ -205,7 +205,7 @@ The login page shows the server's name so returning users (including the host on
 
 - Redirect to `#/chat` with a brief toast: "You already have an account."
 
-**Mobile-first:** Guests will very often click invite links on their phones. This page must have large touch targets, clear hierarchy, and work perfectly at any screen width.
+**Mobile-first:** Clients will very often click invite links on their phones. This page must have large touch targets, clear hierarchy, and work perfectly at any screen width.
 
 **Why no PIN/activation code:** The invite URL itself IS the authorization (cryptographic token + encryption key in the URL fragment). Adding a separate PIN adds friction without meaningful security gain. The link is already single-use and expiring. This matches how Discord, Slack, and Plex invites work.
 
@@ -266,7 +266,7 @@ Ollama's API supports: list models (`GET /api/tags`), pull with streaming progre
 - Status badge: "Loaded" (in memory) vs "Available" (on disk)
 - "Delete" button per model (with confirmation)
 
-When a host adds a new model, guests automatically see it in their model selector dropdown the next time they load the chat or start a new conversation. No action needed on the guest's side.
+When a host adds a new model, clients automatically see it in their model selector dropdown the next time they load the chat or start a new conversation. No action needed on the client's side.
 
 **Download a Model section:**
 
@@ -347,7 +347,7 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 - "Revoke" button per row
 - Empty state: "No API keys yet. Create one to connect external tools like Cursor or the Python openai library."
 
-**Sharing API keys with guests:** The host can create a key, name it after the recipient (e.g. "sarah-cursor"), and send it to them directly. This gives the guest API access without them needing to create their own keys.
+**Sharing API keys with clients:** The host can create a key, name it after the recipient (e.g. "sarah-cursor"), and send it to them directly. This gives the client API access without them needing to create their own keys.
 
 ---
 
@@ -361,8 +361,8 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 
 ### Screen 5: Chat Interface
 
-**Who:** All authenticated users (host and guests).
-**When:** Guest's default view. Host accesses via "Open Chat" from dashboard.
+**Who:** All authenticated users (host and clients).
+**When:** Client's default view. Host accesses via "Open Chat" from dashboard.
 
 **Left sidebar:**
 
@@ -411,8 +411,8 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 
 **Edge cases:**
 
-- AI engine not running: "AI is not available right now." (guest) / "Go to Dashboard > Models to check." (admin)
-- No models downloaded: "No AI models available yet." (guest) / "Go to Dashboard > Models to download one." (admin)
+- AI engine not running: "AI is not available right now." (client) / "Go to Dashboard > Models to check." (admin)
+- No models downloaded: "No AI models available yet." (client) / "Go to Dashboard > Models to download one." (admin)
 - Model busy: Ollama queues requests. If delay > 30s, show: "The AI is processing other requests. Yours is queued."
 - Session expired: redirect to login with "Your session has expired. Please log in again."
 - Username taken during registration: "That username is already taken. Try a different one."
@@ -456,7 +456,7 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 6. Sends it to Sarah via text/Discord/email
 ```
 
-### Flow C: Guest Joins
+### Flow C: Client Joins
 
 ```
 1. Sarah gets a text: "Try my private AI! [invite link]"
@@ -478,7 +478,7 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 2. Overview: 3 users, 24 messages today, 2 models
 3. Checks Users: Sarah active 2 hours ago
 4. Downloads a new model from Models tab
-5. Clicks "Open Chat" to try it (guests will see it automatically)
+5. Clicks "Open Chat" to try it (clients will see it automatically)
 6. Chats. Clicks "Dashboard" in sidebar to go back.
 ```
 
@@ -517,7 +517,7 @@ Fireside manages Ollama automatically. If it crashes, Fireside attempts auto-res
 
 **No models downloaded:**
 
-- Guest chat: "No AI models available yet. Ask the server admin to set one up."
+- Client chat: "No AI models available yet. Ask the server admin to set one up."
 - Admin chat: "No models available. Go to Dashboard > Models to download one."
 
 **Model download fails:**
@@ -529,7 +529,7 @@ Fireside manages Ollama automatically. If it crashes, Fireside attempts auto-res
 - Ollama queues requests internally. Users see a "thinking..." indicator.
 - If > 30s delay: "The AI is processing other requests. Yours is queued."
 
-**Server offline when guest clicks invite:**
+**Server offline when client clicks invite:**
 
 - Browser shows a generic connection error. Docs explain the host's server must be running.
 

@@ -1,5 +1,7 @@
 # Chat UI Comparison — Research (Feb 2026)
 
+> **DECISION REVERSED:** This research originally recommended NextChat. After further evaluation, the decision was changed to **custom vanilla HTML/CSS/JS** — simpler, no framework dependency, no build step, fully understood codebase. Every line is ours. Can upgrade to a richer UI later if needed. See tech-plan.md and product-spec.md for the current decision.
+
 Evaluated open-source chatbot UIs for Fireside's embedded chat interface. The UI must be: lightweight enough to embed in a Go binary, work as a PWA, be mobile-responsive, and look premium.
 
 ---
