@@ -1116,6 +1116,18 @@ body {
 
 .btn-danger-sm:hover { background: var(--danger); color: white; }
 
+.btn-text-sm {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-text-sm:hover { background: var(--bg-input); color: var(--text-primary); }
+
 .admin-empty {
     color: var(--text-muted);
     font-size: 0.9rem;

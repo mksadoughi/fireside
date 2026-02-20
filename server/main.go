@@ -75,6 +75,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/admin/invites/{id}", requireAdmin(db, handleDeleteInvite(db)))
 
 	mux.HandleFunc("GET /api/admin/users", requireAdmin(db, handleListUsers(db)))
+	mux.HandleFunc("PUT /api/admin/users/{id}/password", requireAdmin(db, handleAdminResetPassword(db)))
 
 	// Admin: API key management
 	mux.HandleFunc("POST /api/admin/api-keys", requireAdmin(db, handleCreateAPIKey(db)))
@@ -328,6 +329,44 @@ func handleChangePassword(db *DB) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "password updated"})
+	}
+}
+
+func handleAdminResetPassword(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("id")
+
+		var req struct {
+			NewPassword string `json:"new_password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+
+		if len(req.NewPassword) < 6 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 6 characters"})
+			return
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 12)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+			return
+		}
+
+		result, err := db.conn.Exec("UPDATE users SET password_hash = ? WHERE id = ?", string(hash), userID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update password"})
+			return
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{"status": "password reset"})
 	}
 }
 

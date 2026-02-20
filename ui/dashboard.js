@@ -240,9 +240,27 @@ async function loadUsers() {
                 <td>${escapeHtml(u.display_name || u.username)}</td>
                 <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">User</span>'}</td>
                 <td>${formatDate(u.created_at)}</td>
+                <td>${!u.is_admin ? `<button class="btn-text-sm" data-reset-pw-user="${u.id}" data-reset-pw-name="${escapeHtml(u.username)}">Reset Password</button>` : ''}</td>
             </tr>
         `).join('');
+
+        // Attach reset password handlers
+        tbody.querySelectorAll('[data-reset-pw-user]').forEach(btn => {
+            btn.addEventListener('click', () => openResetPasswordModal(btn.dataset.resetPwUser, btn.dataset.resetPwName));
+        });
     } catch {}
+}
+
+// --- Admin Reset Password Modal ---
+function openResetPasswordModal(userId, username) {
+    const modal = document.getElementById('admin-reset-pw-modal');
+    document.getElementById('admin-reset-pw-username').textContent = username;
+    document.getElementById('admin-reset-pw-form').dataset.userId = userId;
+    document.getElementById('admin-reset-pw-error').classList.add('hidden');
+    document.getElementById('admin-reset-pw-success').classList.add('hidden');
+    document.getElementById('admin-reset-new-pw').value = '';
+    document.getElementById('admin-reset-confirm-pw').value = '';
+    modal.classList.remove('hidden');
 }
 
 async function loadInvites() {
@@ -421,5 +439,57 @@ document.getElementById('change-password-form').addEventListener('submit', async
         }
     } catch {
         showSettingsMsg('settings-pw-msg', 'Connection failed.', 'error');
+    }
+});
+
+// ==========================================================
+// Admin Reset Password Modal
+// ==========================================================
+
+const resetPwModal = document.getElementById('admin-reset-pw-modal');
+
+document.getElementById('admin-reset-pw-close').addEventListener('click', () => {
+    resetPwModal.classList.add('hidden');
+});
+
+resetPwModal.addEventListener('click', (e) => {
+    if (e.target === resetPwModal) resetPwModal.classList.add('hidden');
+});
+
+document.getElementById('admin-reset-pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('admin-reset-pw-error');
+    const successEl = document.getElementById('admin-reset-pw-success');
+    errorEl.classList.add('hidden');
+    successEl.classList.add('hidden');
+
+    const userId = e.target.dataset.userId;
+    const newPw = document.getElementById('admin-reset-new-pw').value;
+    const confirmPw = document.getElementById('admin-reset-confirm-pw').value;
+
+    if (newPw !== confirmPw) {
+        errorEl.textContent = 'Passwords do not match.';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/admin/users/${userId}/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_password: newPw }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            successEl.textContent = 'Password has been reset.';
+            successEl.classList.remove('hidden');
+            setTimeout(() => resetPwModal.classList.add('hidden'), 1500);
+        } else {
+            errorEl.textContent = data.error || 'Failed to reset password.';
+            errorEl.classList.remove('hidden');
+        }
+    } catch {
+        errorEl.textContent = 'Connection failed.';
+        errorEl.classList.remove('hidden');
     }
 });

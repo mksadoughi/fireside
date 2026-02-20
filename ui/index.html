@@ -261,7 +261,7 @@
                     </div>
                     <table class="admin-table">
                         <thead>
-                            <tr><th>Username</th><th>Role</th><th>Joined</th></tr>
+                            <tr><th>Username</th><th>Role</th><th>Joined</th><th></th></tr>
                         </thead>
                         <tbody id="users-tbody"></tbody>
                     </table>
@@ -366,6 +366,23 @@
                 </div>
 
             </main>
+
+            <!-- Admin Reset Password Modal -->
+            <div id="admin-reset-pw-modal" class="modal-overlay hidden">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h2>Reset Password for <span id="admin-reset-pw-username"></span></h2>
+                        <button id="admin-reset-pw-close" class="modal-close">&times;</button>
+                    </div>
+                    <form id="admin-reset-pw-form" class="modal-form">
+                        <div id="admin-reset-pw-error" class="error-msg hidden"></div>
+                        <div id="admin-reset-pw-success" class="success-msg hidden"></div>
+                        <input type="password" id="admin-reset-new-pw" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                        <input type="password" id="admin-reset-confirm-pw" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                        <button type="submit" class="btn-primary">Reset Password</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
