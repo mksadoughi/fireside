@@ -21,6 +21,8 @@
                 <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
                 <button type="submit" class="btn-primary">Log in</button>
             </form>
+
+            <p class="login-hint">Need access? Ask the server admin for an invite link.</p>
         </div>
     </div>
 
@@ -28,23 +30,57 @@
     <div id="setup-page" class="page hidden">
         <div class="login-container">
             <div class="login-logo">🔥</div>
-            <h1 class="login-title">Welcome to Fireside</h1>
-            <p class="login-subtitle">Create your admin account</p>
 
-            <div id="setup-error" class="error-msg hidden"></div>
+            <!-- Step 1: Welcome -->
+            <div id="setup-step-1">
+                <h1 class="login-title">Welcome to Fireside</h1>
+                <p class="login-subtitle">Set up your private AI server in under a minute.</p>
+                <button id="setup-get-started" class="btn-primary" style="width:100%;max-width:320px;">Get Started</button>
+            </div>
 
-            <form id="setup-form" class="login-form">
-                <input type="text" id="setup-server-name" placeholder="Server name (e.g. Kazem's AI)" required>
-                <input type="text" id="setup-username" placeholder="Admin username" autocomplete="username" required>
-                <input type="password" id="setup-password" placeholder="Password (min 6 chars)" autocomplete="new-password" required>
-                <button type="submit" class="btn-primary">Create Server</button>
-            </form>
+            <!-- Step 2: Create Server -->
+            <div id="setup-step-2" class="hidden">
+                <h1 class="login-title">Create Your Server</h1>
+                <p class="login-subtitle">Choose a name and create your admin account.</p>
+
+                <div id="setup-error" class="error-msg hidden"></div>
+
+                <form id="setup-form" class="login-form">
+                    <input type="text" id="setup-server-name" placeholder="Server name (e.g. Kazem's AI)" required>
+                    <input type="text" id="setup-username" placeholder="Admin username" autocomplete="username" required>
+                    <input type="password" id="setup-password" placeholder="Password (min 6 chars)" autocomplete="new-password" required minlength="6">
+                    <button type="submit" class="btn-primary">Create Server</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Registration Page -->
+    <div id="invite-page" class="page hidden">
+        <div class="login-container">
+            <div class="login-logo">🔥</div>
+            <h1 class="login-title" id="invite-server-name"></h1>
+            <p id="invite-message" class="login-subtitle"></p>
+
+            <div id="invite-error" class="error-msg hidden"></div>
+
+            <div id="invite-form-container" class="hidden">
+                <form id="invite-form" class="login-form">
+                    <input type="text" id="invite-username" placeholder="Choose a username" autocomplete="username" required>
+                    <input type="password" id="invite-password" placeholder="Choose a password (min 6 chars)" autocomplete="new-password" required minlength="6">
+                    <button type="submit" class="btn-primary" id="invite-submit-btn">Join</button>
+                </form>
+            </div>
+
+            <div id="invite-invalid" class="hidden">
+                <p class="invite-invalid-title">This invite link is no longer valid.</p>
+                <p class="invite-invalid-hint">It may have expired or already been used.<br>Ask the person who invited you for a new link.</p>
+            </div>
         </div>
     </div>
 
     <!-- Chat Page -->
     <div id="chat-page" class="page hidden">
-        <!-- Sidebar -->
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <h2 id="server-name">Fireside</h2>
@@ -52,7 +88,7 @@
             </div>
             <div id="conversation-list" class="conversation-list"></div>
             <div class="sidebar-footer">
-                <button id="admin-btn" class="btn-admin hidden">Admin Dashboard</button>
+                <button id="admin-btn" class="btn-admin hidden">Dashboard</button>
                 <div class="user-info">
                     <span id="display-name"></span>
                     <button id="logout-btn" class="btn-text">Log out</button>
@@ -60,10 +96,8 @@
             </div>
         </aside>
 
-        <!-- Sidebar toggle for mobile -->
         <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
 
-        <!-- Main chat area -->
         <main class="chat-main">
             <div class="chat-header">
                 <select id="model-select" class="model-select"></select>
@@ -89,94 +123,230 @@
         </main>
     </div>
 
-    <!-- Admin Page -->
+    <!-- Admin Dashboard -->
     <div id="admin-page" class="page hidden">
-        <div class="admin-container">
-            <div class="admin-header">
-                <h1>Admin Dashboard</h1>
-                <button id="admin-back-btn" class="btn-secondary">Back to Chat</button>
-            </div>
-
-            <!-- Tabs -->
-            <div class="admin-tabs">
-                <button class="admin-tab active" data-tab="invites">Invite Links</button>
-                <button class="admin-tab" data-tab="apikeys">API Keys</button>
-                <button class="admin-tab" data-tab="users">Users</button>
-            </div>
-
-            <!-- Invites Tab -->
-            <div id="tab-invites" class="admin-tab-content active">
-                <div class="admin-section-header">
-                    <h2>Invite Links</h2>
-                    <p class="admin-hint">Create invite links to let friends register on your server.</p>
+        <div class="dash">
+            <!-- Dashboard Sidebar -->
+            <aside class="dash-sidebar" id="dash-sidebar">
+                <div class="dash-sidebar-header">
+                    <span class="dash-logo">🔥</span>
+                    <h2 id="dash-server-name">Fireside</h2>
                 </div>
-                <div class="admin-form-row">
-                    <input type="number" id="invite-max-uses" value="1" min="1" max="100" placeholder="Max uses">
-                    <select id="invite-expires">
-                        <option value="">Never expires</option>
-                        <option value="1h">1 hour</option>
-                        <option value="24h">24 hours</option>
-                        <option value="7d">7 days</option>
-                        <option value="30d">30 days</option>
-                    </select>
-                    <button id="create-invite-btn" class="btn-primary">Create Invite</button>
-                </div>
-                <div id="invite-created" class="invite-created hidden">
-                    <label>Invite URL (copy and share):</label>
-                    <div class="copy-row">
-                        <input type="text" id="invite-url-display" readonly>
-                        <button id="copy-invite-btn" class="btn-secondary">Copy</button>
+                <nav class="dash-nav">
+                    <div class="dash-nav-section">Server</div>
+                    <button class="dash-nav-item active" data-tab="overview">Overview</button>
+                    <button class="dash-nav-item" data-tab="models">Models</button>
+                    <button class="dash-nav-item" data-tab="settings">Settings</button>
+
+                    <div class="dash-nav-section">Interfaces</div>
+                    <button class="dash-nav-item" data-tab="chat">Chat</button>
+                    <button class="dash-nav-item" data-tab="api">API</button>
+                </nav>
+                <div class="dash-sidebar-footer">
+                    <div class="user-info">
+                        <span id="dash-display-name"></span>
+                        <button id="dash-logout-btn" class="btn-text">Log out</button>
                     </div>
                 </div>
-                <table class="admin-table">
-                    <thead>
-                        <tr><th>Token</th><th>Uses</th><th>Expires</th><th>Created</th><th></th></tr>
-                    </thead>
-                    <tbody id="invites-tbody"></tbody>
-                </table>
-                <p id="invites-empty" class="admin-empty hidden">No invite links yet.</p>
-            </div>
+            </aside>
 
-            <!-- API Keys Tab -->
-            <div id="tab-apikeys" class="admin-tab-content">
-                <div class="admin-section-header">
-                    <h2>API Keys</h2>
-                    <p class="admin-hint">API keys let external tools (Python openai library, Cursor, etc.) connect to your server.</p>
-                </div>
-                <div class="admin-form-row">
-                    <input type="text" id="apikey-name" placeholder="Key name (e.g. my-laptop)" value="">
-                    <button id="create-apikey-btn" class="btn-primary">Create Key</button>
-                </div>
-                <div id="apikey-created" class="invite-created hidden">
-                    <label>API Key (save now, won't be shown again):</label>
-                    <div class="copy-row">
-                        <input type="text" id="apikey-display" readonly>
-                        <button id="copy-apikey-btn" class="btn-secondary">Copy</button>
+            <!-- Dashboard toggle for mobile -->
+            <button id="dash-sidebar-toggle" class="sidebar-toggle">☰</button>
+
+            <!-- Dashboard Content -->
+            <main class="dash-content">
+
+                <!-- Overview Tab -->
+                <div id="dash-tab-overview" class="dash-tab active">
+                    <h1 class="dash-tab-title">Overview</h1>
+
+                    <div id="getting-started" class="getting-started">
+                        <h2>Getting Started</h2>
+                        <div class="checklist">
+                            <div class="checklist-item done" id="check-server">
+                                <span class="check-icon">✓</span>
+                                <div><strong>Server created</strong><br><span class="check-hint">Your Fireside server is running.</span></div>
+                            </div>
+                            <div class="checklist-item" id="check-model">
+                                <span class="check-icon">○</span>
+                                <div><strong>Download an AI model</strong><br><span class="check-hint">Go to the Models tab to download your first model.</span></div>
+                            </div>
+                            <div class="checklist-item" id="check-message">
+                                <span class="check-icon">○</span>
+                                <div><strong>Send your first message</strong><br><span class="check-hint">Open Chat and start a conversation.</span></div>
+                            </div>
+                            <div class="checklist-item" id="check-apikey">
+                                <span class="check-icon">○</span>
+                                <div><strong>Connect a tool via API</strong><br><span class="check-hint">Create an API key to use Fireside from Cursor, Python, etc.</span></div>
+                            </div>
+                            <div class="checklist-item" id="check-invite">
+                                <span class="check-icon">○</span>
+                                <div><strong>Invite a friend</strong><br><span class="check-hint">Or skip — you can always use Fireside solo.</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid" id="overview-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-users">—</div>
+                            <div class="stat-label">Users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-messages">—</div>
+                            <div class="stat-label">Messages today</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-models">—</div>
+                            <div class="stat-label">Models</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-sessions">—</div>
+                            <div class="stat-label">Active sessions</div>
+                        </div>
                     </div>
                 </div>
-                <table class="admin-table">
-                    <thead>
-                        <tr><th>Name</th><th>Prefix</th><th>Last Used</th><th>Created</th><th></th></tr>
-                    </thead>
-                    <tbody id="apikeys-tbody"></tbody>
-                </table>
-                <p id="apikeys-empty" class="admin-empty hidden">No API keys yet.</p>
-            </div>
 
-            <!-- Users Tab -->
-            <div id="tab-users" class="admin-tab-content">
-                <div class="admin-section-header">
-                    <h2>Registered Users</h2>
-                    <p class="admin-hint">Everyone who has created an account on this server.</p>
+                <!-- Models Tab -->
+                <div id="dash-tab-models" class="dash-tab">
+                    <h1 class="dash-tab-title">Models</h1>
+
+                    <div class="admin-section-header">
+                        <h2>Download a Model</h2>
+                        <p class="admin-hint">Enter an Ollama model name to download it.</p>
+                    </div>
+                    <div class="admin-form-row">
+                        <input type="text" id="model-pull-name" placeholder="e.g. llama3.2:3b">
+                        <button id="pull-model-btn" class="btn-primary">Download</button>
+                    </div>
+                    <div id="pull-progress" class="pull-progress hidden">
+                        <div class="pull-status" id="pull-status">Downloading...</div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" id="pull-bar"></div></div>
+                    </div>
+
+                    <div class="admin-section-header" style="margin-top:1.5rem;">
+                        <h2>Installed Models</h2>
+                    </div>
+                    <div id="models-list" class="models-list">
+                        <p class="admin-empty">Loading models...</p>
+                    </div>
                 </div>
-                <table class="admin-table">
-                    <thead>
-                        <tr><th>Username</th><th>Role</th><th>Joined</th></tr>
-                    </thead>
-                    <tbody id="users-tbody"></tbody>
-                </table>
-                <p id="users-empty" class="admin-empty hidden">No users yet.</p>
-            </div>
+
+                <!-- Chat Tab (merged: users + invites + chat link) -->
+                <div id="dash-tab-chat" class="dash-tab">
+                    <h1 class="dash-tab-title">Chat</h1>
+                    <p class="tab-intro">Fireside includes a built-in chat interface. <a href="#/chat" class="link-accent">Try it yourself →</a></p>
+
+                    <div class="admin-section-header">
+                        <h2>Users</h2>
+                        <p class="admin-hint">People with chat accounts on your server.</p>
+                    </div>
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Username</th><th>Role</th><th>Joined</th></tr>
+                        </thead>
+                        <tbody id="users-tbody"></tbody>
+                    </table>
+                    <p id="users-empty" class="admin-empty hidden">Only you so far. Invite someone below.</p>
+
+                    <div class="admin-section-header" style="margin-top:2rem;">
+                        <h2>Invite Someone</h2>
+                        <p class="admin-hint">Create a single-use link. When they open it, they'll create an account and can start chatting.</p>
+                    </div>
+                    <div class="admin-form-row">
+                        <select id="invite-expires">
+                            <option value="7d">Expires in 7 days</option>
+                            <option value="24h">Expires in 24 hours</option>
+                            <option value="1h">Expires in 1 hour</option>
+                            <option value="30d">Expires in 30 days</option>
+                            <option value="">Never expires</option>
+                        </select>
+                        <button id="create-invite-btn" class="btn-primary">Create Invite Link</button>
+                    </div>
+                    <div id="invite-created" class="invite-created hidden">
+                        <label>Send this link to your friend:</label>
+                        <div class="copy-row">
+                            <input type="text" id="invite-url-display" readonly>
+                            <button id="copy-invite-btn" class="btn-secondary">Copy</button>
+                        </div>
+                    </div>
+                    <div id="pending-invites">
+                        <table class="admin-table" id="invites-table">
+                            <thead>
+                                <tr><th>Invite</th><th>Status</th><th>Expires</th><th>Created</th><th></th></tr>
+                            </thead>
+                            <tbody id="invites-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p id="invites-empty" class="admin-empty hidden"></p>
+                </div>
+
+                <!-- API Tab (renamed from API Keys) -->
+                <div id="dash-tab-api" class="dash-tab">
+                    <h1 class="dash-tab-title">API</h1>
+                    <p class="tab-intro">Give anyone an API key to connect external tools — Cursor, Python, or anything that speaks the OpenAI format. No account needed.</p>
+
+                    <div class="admin-section-header">
+                        <h2>Create API Key</h2>
+                    </div>
+                    <div class="admin-form-row">
+                        <input type="text" id="apikey-name" placeholder="Key name (e.g. my-laptop, sarah-cursor)" value="">
+                        <button id="create-apikey-btn" class="btn-primary">Create Key</button>
+                    </div>
+                    <div id="apikey-created" class="invite-created hidden">
+                        <label>Save this key now — it won't be shown again:</label>
+                        <div class="copy-row">
+                            <input type="text" id="apikey-display" readonly>
+                            <button id="copy-apikey-btn" class="btn-secondary">Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="admin-section-header" style="margin-top:1.5rem;">
+                        <h2>Active Keys</h2>
+                    </div>
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Name</th><th>Prefix</th><th>Last Used</th><th>Created</th><th></th></tr>
+                        </thead>
+                        <tbody id="apikeys-tbody"></tbody>
+                    </table>
+                    <p id="apikeys-empty" class="admin-empty hidden">No API keys yet.</p>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="dash-tab-settings" class="dash-tab">
+                    <h1 class="dash-tab-title">Settings</h1>
+
+                    <div class="settings-section">
+                        <h2>Server Name</h2>
+                        <div class="admin-form-row">
+                            <input type="text" id="settings-server-name" placeholder="Server name">
+                            <button id="save-server-name-btn" class="btn-primary">Save</button>
+                        </div>
+                        <div id="settings-name-msg" class="settings-msg hidden"></div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>Tunnel URL</h2>
+                        <p class="admin-hint">Set this to your Cloudflare Tunnel URL so invite links use the public address.</p>
+                        <div class="admin-form-row">
+                            <input type="text" id="settings-tunnel-url" placeholder="e.g. https://ai.kazem.com">
+                            <button id="save-tunnel-url-btn" class="btn-primary">Save</button>
+                        </div>
+                        <div id="settings-tunnel-msg" class="settings-msg hidden"></div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>Change Password</h2>
+                        <form id="change-password-form" class="settings-password-form">
+                            <input type="password" id="settings-current-pw" placeholder="Current password" required autocomplete="current-password">
+                            <input type="password" id="settings-new-pw" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                            <button type="submit" class="btn-primary">Update Password</button>
+                        </form>
+                        <div id="settings-pw-msg" class="settings-msg hidden"></div>
+                    </div>
+                </div>
+
+            </main>
         </div>
     </div>
 

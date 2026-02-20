@@ -202,6 +202,25 @@ func handleDeleteInvite(db *DB) http.HandlerFunc {
 	}
 }
 
+// handleValidateInvite checks if an invite token is valid (for the invite registration page).
+// This is a public endpoint — no auth required.
+func handleValidateInvite(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.PathValue("token")
+		invite, _, err := db.ValidateInvite(token)
+		if err != nil || invite == nil {
+			writeJSON(w, http.StatusOK, map[string]any{"valid": false})
+			return
+		}
+
+		serverName, _ := db.GetConfig("server_name")
+		writeJSON(w, http.StatusOK, map[string]any{
+			"valid":       true,
+			"server_name": serverName,
+		})
+	}
+}
+
 // handleRegister lets a new user sign up using an invite token.
 func handleRegister(db *DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

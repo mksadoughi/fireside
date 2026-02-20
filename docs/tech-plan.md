@@ -73,13 +73,13 @@ The Go binary that wraps Ollama and manages everything.
 
 **Deliverables:**
 - ✅ Go HTTP server with routing (`main.go`)
-- 🔧 Ollama integration:
+- ✅ Ollama integration:
   - ✅ List models (`GET /api/tags` proxy)
   - ✅ Chat — non-streaming (`ollama.Chat()`)
   - ✅ Chat — streaming SSE (`ollama.ChatStream()`)
-  - ❌ Pull/download model (need `POST /api/pull` proxy with streaming progress)
-  - ❌ Delete model (need `DELETE /api/delete` proxy)
-  - ❌ Running models / hardware info (need `GET /api/ps` proxy)
+  - ✅ Pull/download model with streaming progress (`PullModelStream`)
+  - ✅ Delete model (`DeleteModel`)
+  - ✅ Running models (`ListRunningModels`)
 - ✅ SQLite database — schema, migrations, CRUD (`database.go`)
 - ✅ User auth — bcrypt, sessions, cookies, middleware (`auth.go`)
 - ✅ Invite system — create, validate, consume, list, delete (`invites.go`)
@@ -88,8 +88,13 @@ The Go binary that wraps Ollama and manages everything.
   - ✅ Manage invites (create, list, delete)
   - ✅ List users
   - ❌ Delete/disable users
-  - ❌ Manage models (pull, delete via API)
-  - ❌ Server status endpoint (uptime, active sessions, model count, message count)
+  - ✅ Manage models (pull, delete, list running via API)
+  - ✅ Server status endpoint (users, active sessions, model count, message count)
+  - ✅ Server settings (get/update server name, tunnel URL)
+  - ✅ Change password endpoint (admin only)
+  - ❌ Client self-service password change (`PUT /api/auth/password` — any authenticated user)
+  - ❌ Admin reset client password (`PUT /api/admin/users/{id}/password` — admin sets new password)
+  - ❌ Reset server endpoint (wipe database, return to setup — **localhost only**, detect via `Cf-Connecting-IP` header)
 - ✅ API key system — create, validate (SHA-256), revoke, list (`apikeys.go`)
   - ❌ Rate limiting (DB field exists, not enforced)
 - ✅ OpenAI-compatible API (`openai.go`):
@@ -98,7 +103,7 @@ The Go binary that wraps Ollama and manages everything.
 - ❌ Login rate limiting (brute force protection — critical for auth-exposed dashboard)
 - ❌ Basic tests
 
-**Milestone:** You can `curl` the server, authenticate with an API key, and get a chat response from Ollama. Admin can create invite links, manage users, and manage models via `curl`.
+**Milestone:** You can `curl` the server, authenticate with an API key, and get a chat response from Ollama. Admin can create invite links, manage users, manage models, and configure settings via `curl`.
 
 ---
 
@@ -107,45 +112,48 @@ The Go binary that wraps Ollama and manages everything.
 The thing Clients actually see and use. This is the product.
 
 **Chat UI deliverables:**
-- 🔧 Login page:
+- ✅ Login page:
   - ✅ Login form with username/password
-  - ❌ Server name displayed as heading (fetches after login, should show before)
-  - ❌ "Need access? Ask the server admin for an invite link." note
+  - ✅ Server name displayed as heading
+  - ✅ "Need access? Ask the server admin for an invite link." note
 - 🔧 Setup page (first-run):
   - ✅ Server name + username + password form
+  - ✅ Two-step wizard (Welcome → Create Server)
   - ❌ Confirm password field
-  - ❌ Two-step wizard (Welcome → Create Server) per UX spec
-- ❌ Invite registration page (`#/invite/:token`) — backend exists, NO UI
+- ✅ Invite registration page (`#/invite/:token`) — validate token, register, auto-login
 - ✅ Chat interface — message input, streaming responses (SSE), message display
 - ✅ Conversation sidebar — list, new chat, delete, active highlight
 - ✅ Model picker dropdown
 - ✅ Mobile responsive (CSS media queries, sidebar toggle)
 - ✅ Dark mode (default theme)
 - ✅ Auto-resize textarea, Enter to send, Shift+Enter for newline
-- ❌ Hash-based SPA routing (`#/setup`, `#/login`, `#/chat`, `#/dashboard`, `#/invite/:token`)
+- ✅ Hash-based SPA routing (`#/setup`, `#/login`, `#/chat`, `#/dashboard`, `#/invite/:token`)
 - ❌ Markdown rendering (bold, italic, headers, lists, links)
 - ❌ Code blocks with syntax highlighting + copy button
 - ❌ Suggested prompt buttons on welcome screen
 - 🔧 Trust indicator footer — element exists, shows "Private AI" but not server name dynamically
+- ❌ Client password change (accessible from chat sidebar)
+- ❌ Confirm password field on invite registration page
 - ❌ Offline page / auto-reconnect
-- ❌ Settings page (change password, display name, delete conversations)
 - ❌ Embed UI in Go binary via `embed` package (currently served from filesystem)
 
 **Dashboard deliverables (admin only):**
-- 🔧 Current state: centered container with 3 tabs (Invites, API Keys, Users)
-- 📝 Needs: full sidebar layout per UX spec with 6 tabs
-- ✅ Invites tab — create, list, revoke, copy URL
-- ✅ API Keys tab — create, list, revoke, copy key
-  - ❌ Usage examples shown after key creation (Python, Cursor, curl)
-- ✅ Users tab — list with role badges
+- ✅ Sidebar navigation layout with section headers (Server / Interfaces)
+- ✅ Overview tab — getting started checklist + stats cards (users, messages, models, sessions)
+- ✅ Models tab — list installed, download new with progress bar, delete
+  - ❌ Popular model suggestion cards
+- ✅ Settings tab — edit server name, tunnel URL, change password
+  - ❌ Reset Server button (localhost only — hidden when accessed remotely, requires password re-entry + confirmation)
+- ✅ Chat tab (merged Users + Invites) — users list, single-use invite creation, pending invites
+  - ✅ Subtle "Try it yourself →" link to chat UI
+  - ✅ Single-use invites (one invite = one person)
   - ❌ Delete/revoke user button
+  - ❌ Admin reset user password button + modal
   - ❌ Last Active column
-- ❌ Overview tab — getting started checklist + stats cards
-- ❌ Models tab — list installed, download new, delete, progress bar, popular suggestions
-- ❌ Settings tab — edit server name, change password, tunnel URL
-- ❌ Sidebar navigation layout (Overview, Models, Invites, Users, API Keys, Settings)
+- ✅ API tab — create keys, list active keys, revoke
+  - ❌ Usage examples shown after key creation (Python, Cursor, curl)
 
-**Milestone:** A Host can open `localhost:7654`, log in, manage their server from the dashboard, and chat. Clients can register via invite link and chat. Works on desktop and mobile.
+**Milestone:** A Host can open `localhost:7654`, log in, manage their server from a sidebar dashboard (Server: Overview/Models/Settings, Interfaces: Chat/API), and chat. Clients can register via single-use invite link and chat. Works on desktop and mobile.
 
 ---
 
@@ -224,28 +232,3 @@ Real users, real feedback, real bugs.
 - ❌ Security audit of encryption implementation
 - ❌ Post to: r/selfhosted, r/LocalLLaMA, Hacker News
 
----
-
-## Progress Summary
-
-| Phase | Status | Estimated completion |
-|---|---|---|
-| Phase 0: Foundation | ✅ Complete | Done |
-| Phase 1: Core Server | ~75% done | Missing: model management, user delete, rate limiting, tests |
-| Phase 2: Chat UI & Dashboard | ~30% done | Missing: routing, invite page, markdown, dashboard rebuild, models tab, settings |
-| Phase 3: Encryption | ~5% (schema only) | All implementation needed |
-| Phase 4: Networking & Install | Not started | All implementation needed |
-| Phase 5: Website & Docs | Not started | All implementation needed |
-| Phase 6: Testing & Launch | Not started | Depends on everything above |
-
----
-
-## Success Criteria
-
-The MLP works if:
-- A Host can go from zero to shareable URL in under 10 minutes
-- A Client can go from invite link to chatting in under 1 minute
-- At least 3 out of 5 test Clients use it more than once in the first week
-- The Host doesn't need to touch anything after initial setup
-- At least 1 developer successfully connects to the API and makes a request
-- Encryption is verifiable — encrypted blobs visible in browser DevTools, each user has a unique key

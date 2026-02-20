@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // uiDir is resolved at startup to serve the UI files.
@@ -55,6 +57,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/login", handleLogin(db))
 	mux.HandleFunc("POST /api/auth/logout", handleLogout(db))
 	mux.HandleFunc("POST /api/auth/register", handleRegister(db))
+	mux.HandleFunc("GET /api/invite/{token}", handleValidateInvite(db))
 
 	// Authenticated endpoints
 	mux.HandleFunc("GET /api/auth/me", requireAuth(db, handleMe(db)))
@@ -76,6 +79,15 @@ func main() {
 	mux.HandleFunc("POST /api/admin/api-keys", requireAdmin(db, handleCreateAPIKey(db)))
 	mux.HandleFunc("GET /api/admin/api-keys", requireAdmin(db, handleListAPIKeys(db)))
 	mux.HandleFunc("DELETE /api/admin/api-keys/{id}", requireAdmin(db, handleDeleteAPIKey(db)))
+
+	// Admin: Stats, Models, Settings
+	mux.HandleFunc("GET /api/admin/stats", requireAdmin(db, handleAdminStats(db, ollama)))
+	mux.HandleFunc("POST /api/admin/models/pull", requireAdmin(db, handlePullModel(ollama)))
+	mux.HandleFunc("DELETE /api/admin/models", requireAdmin(db, handleDeleteModel(ollama)))
+	mux.HandleFunc("GET /api/admin/models/running", requireAdmin(db, handleListRunningModels(ollama)))
+	mux.HandleFunc("GET /api/admin/settings", requireAdmin(db, handleGetSettings(db)))
+	mux.HandleFunc("PUT /api/admin/settings", requireAdmin(db, handleUpdateSettings(db)))
+	mux.HandleFunc("PUT /api/admin/password", requireAdmin(db, handleChangePassword(db)))
 
 	// OpenAI-compatible API (authenticated via API key in Bearer token)
 	mux.HandleFunc("POST /v1/chat/completions", requireAPIKey(db, handleOpenAIChatCompletions(db, ollama)))
@@ -141,6 +153,181 @@ func findUIDir() string {
 
 	log.Println("Warning: UI directory not found, web interface will not be available")
 	return ""
+}
+
+// --- Admin: Stats ---
+
+func handleAdminStats(db *DB, ollama *OllamaClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var userCount, messagesToday, totalMessages, keyCount, inviteCount, activeSessions int
+
+		db.conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
+		db.conn.QueryRow("SELECT COUNT(*) FROM messages WHERE created_at >= date('now')").Scan(&messagesToday)
+		db.conn.QueryRow("SELECT COUNT(*) FROM messages").Scan(&totalMessages)
+		db.conn.QueryRow("SELECT COUNT(*) FROM api_keys").Scan(&keyCount)
+		db.conn.QueryRow("SELECT COUNT(*) FROM invite_links").Scan(&inviteCount)
+		db.conn.QueryRow("SELECT COUNT(*) FROM sessions WHERE expires_at > CURRENT_TIMESTAMP").Scan(&activeSessions)
+
+		var modelCount int
+		models, err := ollama.ListModels()
+		if err == nil {
+			modelCount = len(models)
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"users":           userCount,
+			"messages_today":  messagesToday,
+			"models":          modelCount,
+			"active_sessions": activeSessions,
+			"has_messages":    totalMessages > 0,
+			"has_api_keys":    keyCount > 0,
+			"has_invites":     inviteCount > 0,
+			"has_models":      modelCount > 0,
+		})
+	}
+}
+
+// --- Admin: Model management ---
+
+func handlePullModel(ollama *OllamaClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "model name required"})
+			return
+		}
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "streaming not supported"})
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		err := ollama.PullModelStream(req.Name, func(line []byte) error {
+			fmt.Fprintf(w, "data: %s\n\n", line)
+			flusher.Flush()
+			return nil
+		})
+
+		if err != nil {
+			errJSON, _ := json.Marshal(map[string]string{"error": err.Error()})
+			fmt.Fprintf(w, "data: %s\n\n", errJSON)
+			flusher.Flush()
+			return
+		}
+
+		fmt.Fprintf(w, "data: [DONE]\n\n")
+		flusher.Flush()
+	}
+}
+
+func handleDeleteModel(ollama *OllamaClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "model name required"})
+			return
+		}
+
+		if err := ollama.DeleteModel(req.Name); err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("failed to delete model: %v", err)})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	}
+}
+
+func handleListRunningModels(ollama *OllamaClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		models, err := ollama.ListRunningModels()
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("failed to list running models: %v", err)})
+			return
+		}
+		if models == nil {
+			models = []RunningModel{}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"models": models})
+	}
+}
+
+// --- Admin: Settings ---
+
+func handleGetSettings(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serverName, _ := db.GetConfig("server_name")
+		tunnelURL, _ := db.GetConfig("tunnel_url")
+		writeJSON(w, http.StatusOK, map[string]any{
+			"server_name": serverName,
+			"tunnel_url":  tunnelURL,
+		})
+	}
+}
+
+func handleUpdateSettings(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ServerName *string `json:"server_name"`
+			TunnelURL  *string `json:"tunnel_url"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+		if req.ServerName != nil {
+			db.SetConfig("server_name", *req.ServerName)
+		}
+		if req.TunnelURL != nil {
+			db.SetConfig("tunnel_url", *req.TunnelURL)
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	}
+}
+
+func handleChangePassword(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		var req struct {
+			CurrentPassword string `json:"current_password"`
+			NewPassword     string `json:"new_password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+
+		authUser, err := db.Authenticate(user.Username, req.CurrentPassword)
+		if err != nil || authUser == nil {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "current password is incorrect"})
+			return
+		}
+
+		if len(req.NewPassword) < 6 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 6 characters"})
+			return
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 12)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+			return
+		}
+
+		if _, err := db.conn.Exec("UPDATE users SET password_hash = ? WHERE id = ?", string(hash), user.ID); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update password"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{"status": "password updated"})
+	}
 }
 
 func handleListModels(ollama *OllamaClient) http.HandlerFunc {

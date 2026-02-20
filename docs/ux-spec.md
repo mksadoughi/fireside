@@ -107,15 +107,23 @@ Fireside Server
 |-- #/invite/:token        Invite registration (clients clicking an invite link)
 |
 |-- #/dashboard            Host Dashboard (admin only, single page with tabs)
-|   |-- [Overview tab]     Status, stats, getting-started checklist
-|   |-- [Models tab]       List, pull, delete AI models
-|   |-- [Invites tab]      Create and manage invite links
-|   |-- [Users tab]        Registered users, activity
-|   |-- [API Keys tab]     Create and manage API keys
-|   |-- [Settings tab]     Server name, password, tunnel URL
+|   |
+|   |-- SERVER (section)
+|   |   |-- [Overview]     Status, stats, getting-started checklist
+|   |   |-- [Models]       List, pull, delete AI models
+|   |   |-- [Settings]     Server name, password, tunnel URL, reset server
+|   |
+|   |-- INTERFACES (section)
+|   |   |-- [Chat]         Users + invite management + link to chat UI
+|   |   |-- [API]          API key management
 |
 |-- #/chat                 Chat (all authenticated users)
 ```
+
+**Dashboard mental model:** The sidebar is split into two conceptual groups:
+
+- **Server** — the infrastructure layer. Models, settings, server health. Things that exist regardless of how anyone uses the server.
+- **Interfaces** — the ways people use the server. Chat (built-in web UI + user management) and API (programmatic access via OpenAI-compatible endpoints). These are two separate "front doors" to the same AI backend.
 
 **Routing rules:**
 
@@ -221,10 +229,16 @@ The login page shows the server's name so returning users (including the host on
 **Sidebar:**
 
 - Server name + fire icon at top
-- Navigation items: Overview, Models, Invites, Users, API Keys, Settings
-- Divider
-- "Open Chat" button (prominent, navigates to `#/chat`)
+- **Server** section header
+  - Overview
+  - Models
+  - Settings
+- **Interfaces** section header
+  - Chat
+  - API
 - Admin username + "Log Out" at bottom
+
+No separate "Open Chat" button in the sidebar. The host accesses the chat UI via a subtle inline link inside the Chat tab content ("Try it yourself →"). This keeps the dashboard focused on management — if the host just wanted to chat with AI personally, they'd use Ollama directly. Fireside's value is in sharing and managing.
 
 ---
 
@@ -238,8 +252,8 @@ Serves two purposes depending on server maturity:
   - [done] Server created
   - [action needed] Download your first AI model -> links to Models tab
   - [pending] Send your first message -> links to Chat
-  - [pending] Connect a tool via API -> links to API Keys tab
-  - [pending] Invite a friend (or skip -- you can use it solo!) -> links to Invites tab
+  - [pending] Connect a tool via API -> links to API tab
+  - [pending] Invite a friend (or skip -- you can use it solo!) -> links to Chat tab
 - Each item has a brief description
 - Checklist auto-updates as tasks complete
 - Disappears once all items are done
@@ -252,7 +266,7 @@ Serves two purposes depending on server maturity:
   - Messages: count today (e.g. "47 messages today")
   - Models: count available (e.g. "2 models")
   - Active now: current sessions
-- Quick action buttons: "Create Invite", "Open Chat", "Create API Key"
+- Quick action buttons: "Create Invite", "Create API Key"
 
 ---
 
@@ -287,82 +301,86 @@ If Ollama's process crashes or stops for some reason:
 
 ---
 
-#### Tab: Invites
+#### Tab: Chat (under INTERFACES)
 
-**Create Invite section:**
+This tab manages everything related to the built-in chat interface: who has access, inviting new people, and a link to try it yourself.
 
-- Label field (optional, placeholder: "e.g. For Sarah") -- so host tracks who they invited
-- Max uses dropdown (1, 5, 10, 25, unlimited)
-- Expires in dropdown (1 hour, 24 hours, 7 days, 30 days, never)
-- "Create Invite" button
+**Intro line:** "Fireside includes a built-in chat interface. [Try it yourself →](#/chat)" — subtle link to the chat UI. Not a big button.
+
+**Users section:**
+
+- Table of everyone with a chat account on the server
+- Columns: Username, Role (Admin / User badge), Joined
+- Admin user shown first
+- Empty state (only admin): "Only you so far. Invite someone below."
+
+**Invite Someone section:**
+
+- Expires in dropdown (7 days default, 1 hour, 24 hours, 30 days, never)
+- "Create Invite Link" button
+- **Invites are always single-use.** One invite = one person. No max_uses dropdown. This is simpler and more traceable. The host creates an invite, gives it to one specific person, they register, it's consumed.
 
 **After creation -- highlighted box:**
 
+- "Send this link to your friend:"
 - The invite URL (readonly input, monospace font)
-- "Copy Link" button (changes to "Copied!" briefly)
-- Instruction: "Send this link to your friend. They'll use it to create an account."
+- "Copy" button
 
-**Existing invites table:**
+**Pending invites list:**
 
-- Columns: Label, Status (Active / Expired / Used Up), Uses (e.g. "1/5"), Expires, Created
-- "Revoke" button per row
-- Expired/used invites shown grayed out
-- Empty state: "No invites yet. Create one to share access with a friend."
+- Table of created invites
+- Columns: Invite (token prefix), Status (Pending / Used / Expired), Expires, Created
+- "Revoke" button on pending invites only
+- Used/expired invites shown grayed out
 
----
-
-#### Tab: Users
-
-**Registered users table:**
-
-- Columns: Username, Role (Admin / User badge), Joined, Last Active
-- Admin user shown first, cannot revoke self
-- "Revoke Access" button disables the account
-- Empty state: only admin exists, no extra messaging needed
+**Why combined:** An invite is just "a user who hasn't registered yet." Having invites and users as separate pages was artificial. One page that shows registered users at the top and invite management below is the natural mental model.
 
 ---
 
-#### Tab: API Keys
+#### Tab: API (under INTERFACES)
 
-API keys are a core feature, not just an admin utility. They let the host (and anyone the host shares a key with) connect any OpenAI-compatible tool to this server.
+API keys are a core feature, not just an admin utility. They let anyone the host trusts connect any OpenAI-compatible tool to this server. API keys are independent of user accounts — the recipient doesn't need to register.
+
+**Intro line:** "Give anyone an API key to connect external tools — Cursor, Python, or anything that speaks the OpenAI format. No account needed."
 
 **Create API Key section:**
 
-- Name field (placeholder: "e.g. my-laptop, cursor-ide, sarah-python")
+- Name field (placeholder: "e.g. my-laptop, sarah-cursor")
 - "Create Key" button
 
 **After creation -- highlighted warning box:**
 
-- "Save this key now. It will not be shown again."
+- "Save this key now — it won't be shown again."
 - Key in monospace readonly input
-- "Copy Key" button
+- "Copy" button
 - Quick-start usage examples (tabbed or stacked):
   - **Python:** `openai.OpenAI(base_url="https://your-server/v1", api_key="sk-...")`
   - **Cursor/IDE:** "Set base URL to `https://your-server/v1` and paste the API key."
   - **curl:** `curl https://your-server/v1/chat/completions -H "Authorization: Bearer sk-..."`
 
-**Existing keys table:**
+**Active Keys table:**
 
 - Columns: Name, Key Prefix (sk-abc1...), Last Used, Created
 - "Revoke" button per row
-- Empty state: "No API keys yet. Create one to connect external tools like Cursor or the Python openai library."
+- Empty state: "No API keys yet."
 
-**Sharing API keys with clients:** The host can create a key, name it after the recipient (e.g. "sarah-cursor"), and send it to them directly. This gives the client API access without them needing to create their own keys.
+**Sharing API keys:** The host can create a key, name it after the recipient (e.g. "sarah-cursor"), and send it to them directly. This gives the recipient API access without them needing a Fireside account. The two access paths (Chat UI via invite, API via key) are completely independent.
 
 ---
 
-#### Tab: Settings
+#### Tab: Settings (under SERVER)
 
-- Server name (editable + Save button)
-- Change admin password (current password, new password, confirm)
-- Tunnel URL (for Cloudflare Tunnel, so invite links use the public URL instead of localhost)
+- **Server Name** — editable + Save button
+- **Tunnel URL** — for Cloudflare Tunnel, so invite links use the public URL instead of localhost. Text input + Save.
+- **Change Password** — current password, new password fields + Update button
+- **Reset Server** — wipes the database (users, conversations, invites, API keys, config) and returns to the setup wizard. Big red button with confirmation dialog: "This will erase all data and start fresh. This cannot be undone." This is the host's "start over" mechanism. Without it, the only option after logging out is to log back in — there's no way to re-run setup with a new name/account.
 
 ---
 
 ### Screen 5: Chat Interface
 
 **Who:** All authenticated users (host and clients).
-**When:** Client's default view. Host accesses via "Open Chat" from dashboard.
+**When:** Client's default view. Host accesses via "Try it yourself →" link in the Chat tab of the dashboard.
 
 **Left sidebar:**
 
@@ -437,9 +455,9 @@ API keys are a core feature, not just an admin utility. They let the host (and a
    - [action needed] Download your first AI model
    - [pending] Send your first message
    - [pending] Connect a tool via API
-10. Clicks model task -> Models tab
+10. Clicks model task -> Models tab (under Server)
 11. Picks a model, clicks Download. Progress bar. (Can browse other tabs while waiting.)
-12. Model ready. Clicks "Open Chat"
+12. Model ready. Clicks Chat tab -> "Try it yourself" link
 13. Chats with AI from their desktop.
 14. Later, opens the same URL on their phone -> login -> same conversations, picks up where they left off.
 15. Creates an API key, configures Cursor to use it. Now has AI in their IDE too.
@@ -449,9 +467,9 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 
 ```
 1. Host is on Dashboard
-2. Clicks Invites tab (or "Create Invite" quick action)
-3. Labels it "For Sarah", 1 use, expires 7 days
-4. Clicks "Create Invite"
+2. Clicks Chat tab (under Interfaces)
+3. Scrolls to "Invite Someone", picks expiry (7 days)
+4. Clicks "Create Invite Link"
 5. Copies the invite URL
 6. Sends it to Sarah via text/Discord/email
 ```
@@ -476,16 +494,16 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 ```
 1. Visits localhost:7654 -> auto-login -> #/dashboard
 2. Overview: 3 users, 24 messages today, 2 models
-3. Checks Users: Sarah active 2 hours ago
+3. Clicks Chat tab to see users, Sarah's last activity
 4. Downloads a new model from Models tab
-5. Clicks "Open Chat" to try it (clients will see it automatically)
-6. Chats. Clicks "Dashboard" in sidebar to go back.
+5. Clicks "Try it yourself" link in Chat tab to test the new model
+6. Chats. Clicks "Dashboard" in chat sidebar to go back.
 ```
 
 ### Flow E: API Key Usage (Host)
 
 ```
-1. Dashboard > API Keys tab
+1. Dashboard > API tab (under Interfaces)
 2. Creates key "cursor-ide", copies it
 3. Configures tool:
    base_url = "https://ai.kazem.com/v1"
@@ -498,7 +516,7 @@ API keys are a core feature, not just an admin utility. They let the host (and a
 
 ```
 1. Host's developer friend asks to connect from their IDE
-2. Host goes to Dashboard > API Keys tab
+2. Host goes to Dashboard > API tab (under Interfaces)
 3. Creates key named "sarah-cursor", copies it
 4. Sends the key + server URL to the friend:
    "Base URL: https://ai.kazem.com/v1, API key: sk-..."

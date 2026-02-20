@@ -62,6 +62,83 @@ func (c *OllamaClient) ListModels() ([]Model, error) {
 	return result.Models, nil
 }
 
+// RunningModel represents a model currently loaded in Ollama's memory.
+type RunningModel struct {
+	Name      string    `json:"name"`
+	Size      int64     `json:"size"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// ListRunningModels returns models currently loaded in Ollama's memory.
+func (c *OllamaClient) ListRunningModels() ([]RunningModel, error) {
+	resp, err := c.HTTPClient.Get(c.BaseURL + "/api/ps")
+	if err != nil {
+		return nil, fmt.Errorf("connecting to Ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Models []RunningModel `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	return result.Models, nil
+}
+
+// PullModelStream pulls a model from Ollama with streaming progress.
+// Each line from Ollama is forwarded to onLine as raw JSON bytes.
+func (c *OllamaClient) PullModelStream(name string, onLine func([]byte) error) error {
+	body, _ := json.Marshal(map[string]any{"name": name, "stream": true})
+	client := &http.Client{Timeout: 0}
+	resp, err := client.Post(c.BaseURL+"/api/pull", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("calling Ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Ollama returned %d: %s", resp.StatusCode, b)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		if err := onLine(line); err != nil {
+			return err
+		}
+	}
+	return scanner.Err()
+}
+
+// DeleteModel removes a model from Ollama.
+func (c *OllamaClient) DeleteModel(name string) error {
+	body, _ := json.Marshal(map[string]string{"name": name})
+	req, err := http.NewRequest("DELETE", c.BaseURL+"/api/delete", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("calling Ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Ollama returned %d: %s", resp.StatusCode, b)
+	}
+	return nil
+}
+
 // ChatMessage is a single message in a conversation (user, assistant, or system).
 type ChatMessage struct {
 	Role    string `json:"role"`
