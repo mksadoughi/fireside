@@ -4,6 +4,7 @@
 
 import * as api from './api.js';
 import { escapeHtml } from './helpers.js';
+import { renderMarkdown } from './markdown.js';
 import { state } from './app.js';
 
 const chatForm = document.getElementById('chat-form');
@@ -192,6 +193,8 @@ async function sendMessage() {
         }
 
         textEl.classList.remove('streaming-cursor');
+        textEl.innerHTML = renderMarkdown(fullText);
+        scrollToBottom();
         await loadConversations();
     } catch {
         textEl.textContent = 'Error: Failed to get response';
@@ -219,7 +222,11 @@ export function appendMessage(role, content) {
     `;
 
     const textEl = div.querySelector('.msg-text');
-    textEl.textContent = content;
+    if (role === 'assistant' && content) {
+        textEl.innerHTML = renderMarkdown(content);
+    } else {
+        textEl.textContent = content;
+    }
     messagesDiv.appendChild(div);
     return { div, textEl };
 }
@@ -230,3 +237,17 @@ function scrollToBottom() {
 
 // --- Event listeners ---
 document.getElementById('new-chat-btn').addEventListener('click', startNewChat);
+
+// Delegated click handler for code block copy buttons
+messagesDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.code-copy-btn');
+    if (!btn) return;
+    const codeBlock = btn.closest('.code-block');
+    const code = codeBlock?.querySelector('code')?.textContent;
+    if (code) {
+        navigator.clipboard.writeText(code).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+        });
+    }
+});

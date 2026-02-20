@@ -342,25 +342,129 @@ body {
 .msg-text {
     font-size: 0.95rem;
     word-wrap: break-word;
+    line-height: 1.6;
+}
+
+/* When streaming (plain text), preserve whitespace */
+.msg-text.streaming-cursor {
     white-space: pre-wrap;
 }
 
+/* Markdown rendered content */
+.msg-text p { margin: 0.4em 0; }
+.msg-text p:first-child { margin-top: 0; }
+.msg-text p:last-child { margin-bottom: 0; }
+
+.msg-text h1, .msg-text h2, .msg-text h3,
+.msg-text h4, .msg-text h5, .msg-text h6 {
+    margin: 0.8em 0 0.3em;
+    line-height: 1.3;
+}
+.msg-text h1 { font-size: 1.3em; }
+.msg-text h2 { font-size: 1.15em; }
+.msg-text h3 { font-size: 1.05em; }
+
+.msg-text ul, .msg-text ol {
+    margin: 0.4em 0;
+    padding-left: 1.5em;
+}
+.msg-text li { margin: 0.2em 0; }
+
+.msg-text blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 0.3em 0.8em;
+    margin: 0.5em 0;
+    color: var(--text-secondary);
+}
+
+.msg-text hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.8em 0;
+}
+
+.msg-text a {
+    color: var(--accent);
+    text-decoration: none;
+}
+.msg-text a:hover { text-decoration: underline; }
+
+.msg-text strong { font-weight: 600; }
+
+/* Inline code */
+.msg-text .inline-code,
 .msg-text code {
     background: var(--bg-sidebar);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
     font-size: 0.85em;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 }
 
-.msg-text pre {
+/* Code blocks */
+.code-block {
+    background: #0d1117;
+    border-radius: var(--radius-sm);
+    margin: 0.6em 0;
+    overflow: hidden;
+}
+
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.8rem;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    font-size: 0.75rem;
+}
+
+.code-lang {
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    text-transform: lowercase;
+}
+
+.code-copy-btn {
+    background: none;
+    border: 1px solid #30363d;
+    color: var(--text-secondary);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+}
+.code-copy-btn:hover {
+    background: #21262d;
+    color: var(--text-primary);
+}
+
+.code-block pre {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    background: none;
+}
+
+.code-block pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.85em;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    line-height: 1.5;
+    color: #e6edf3;
+}
+
+/* Old pre/code fallback (in case of non-rendered content) */
+.msg-text pre:not(.code-block pre) {
     background: var(--bg-sidebar);
     padding: 0.75rem 1rem;
     border-radius: var(--radius-sm);
     overflow-x: auto;
     margin: 0.5rem 0;
 }
-
-.msg-text pre code { background: none; padding: 0; }
+.msg-text pre:not(.code-block pre) code { background: none; padding: 0; }
 
 /* --- Chat Input --- */
 .chat-input-area {
