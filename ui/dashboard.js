@@ -76,7 +76,7 @@ async function loadOverview() {
             updateCheckItem('check-apikey', data.has_api_keys);
             updateCheckItem('check-invite', data.has_invites);
         }
-    } catch {}
+    } catch { }
 }
 
 function updateCheckItem(id, done) {
@@ -149,7 +149,7 @@ async function confirmDeleteModel(name) {
     try {
         const resp = await api.deleteModel(name);
         if (resp.ok) await loadAdminModels();
-    } catch {}
+    } catch { }
 }
 
 // Pull model
@@ -198,7 +198,7 @@ document.getElementById('pull-model-btn').addEventListener('click', async () => 
                         const pct = Math.round((data.completed / data.total) * 100);
                         barEl.style.width = pct + '%';
                     }
-                } catch {}
+                } catch { }
             }
         }
 
@@ -248,7 +248,7 @@ async function loadUsers() {
         tbody.querySelectorAll('[data-reset-pw-user]').forEach(btn => {
             btn.addEventListener('click', () => openResetPasswordModal(btn.dataset.resetPwUser, btn.dataset.resetPwName));
         });
-    } catch {}
+    } catch { }
 }
 
 // --- Admin Reset Password Modal ---
@@ -301,7 +301,7 @@ async function loadInvites() {
                 await loadInvites();
             });
         });
-    } catch {}
+    } catch { }
 }
 
 document.getElementById('create-invite-btn').addEventListener('click', async () => {
@@ -314,7 +314,7 @@ document.getElementById('create-invite-btn').addEventListener('click', async () 
         document.getElementById('invite-url-display').value = data.url;
         document.getElementById('invite-created').classList.remove('hidden');
         await loadInvites();
-    } catch {}
+    } catch { }
 });
 
 document.getElementById('copy-invite-btn').addEventListener('click', () => {
@@ -360,7 +360,7 @@ async function loadAPIKeys() {
                 await loadAPIKeys();
             });
         });
-    } catch {}
+    } catch { }
 }
 
 document.getElementById('create-apikey-btn').addEventListener('click', async () => {
@@ -373,7 +373,7 @@ document.getElementById('create-apikey-btn').addEventListener('click', async () 
         document.getElementById('apikey-display').value = data.api_key;
         document.getElementById('apikey-created').classList.remove('hidden');
         await loadAPIKeys();
-    } catch {}
+    } catch { }
 });
 
 document.getElementById('copy-apikey-btn').addEventListener('click', () => {
@@ -393,7 +393,7 @@ async function loadSettings() {
         const data = await resp.json();
         document.getElementById('settings-server-name').value = data.server_name || '';
         document.getElementById('settings-tunnel-url').value = data.tunnel_url || '';
-    } catch {}
+    } catch { }
 }
 
 document.getElementById('save-server-name-btn').addEventListener('click', async () => {

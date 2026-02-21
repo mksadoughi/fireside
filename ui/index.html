@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fireside</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
     <!-- Login Page -->
     <div id="login-page" class="page">
@@ -18,7 +20,8 @@
 
             <form id="login-form" class="login-form">
                 <input type="text" id="login-username" placeholder="Username" autocomplete="username" required>
-                <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+                <input type="password" id="login-password" placeholder="Password" autocomplete="current-password"
+                    required>
                 <button type="submit" class="btn-primary">Log in</button>
             </form>
 
@@ -35,7 +38,8 @@
             <div id="setup-step-1">
                 <h1 class="login-title">Welcome to Fireside</h1>
                 <p class="login-subtitle">Set up your private AI server in under a minute.</p>
-                <button id="setup-get-started" class="btn-primary" style="width:100%;max-width:320px;">Get Started</button>
+                <button id="setup-get-started" class="btn-primary" style="width:100%;max-width:320px;">Get
+                    Started</button>
             </div>
 
             <!-- Step 2: Create Server -->
@@ -47,8 +51,10 @@
 
                 <form id="setup-form" class="login-form">
                     <input type="text" id="setup-server-name" placeholder="Server name (e.g. Kazem's AI)" required>
-                    <input type="text" id="setup-username" placeholder="Admin username" autocomplete="username" required>
-                    <input type="password" id="setup-password" placeholder="Password (min 6 chars)" autocomplete="new-password" required minlength="6">
+                    <input type="text" id="setup-username" placeholder="Admin username" autocomplete="username"
+                        required>
+                    <input type="password" id="setup-password" placeholder="Password (min 6 chars)"
+                        autocomplete="new-password" required minlength="6">
                     <button type="submit" class="btn-primary">Create Server</button>
                 </form>
             </div>
@@ -66,15 +72,18 @@
 
             <div id="invite-form-container" class="hidden">
                 <form id="invite-form" class="login-form">
-                    <input type="text" id="invite-username" placeholder="Choose a username" autocomplete="username" required>
-                    <input type="password" id="invite-password" placeholder="Choose a password (min 6 chars)" autocomplete="new-password" required minlength="6">
+                    <input type="text" id="invite-username" placeholder="Choose a username" autocomplete="username"
+                        required>
+                    <input type="password" id="invite-password" placeholder="Choose a password (min 6 chars)"
+                        autocomplete="new-password" required minlength="6">
                     <button type="submit" class="btn-primary" id="invite-submit-btn">Join</button>
                 </form>
             </div>
 
             <div id="invite-invalid" class="hidden">
                 <p class="invite-invalid-title">This invite link is no longer valid.</p>
-                <p class="invite-invalid-hint">It may have expired or already been used.<br>Ask the person who invited you for a new link.</p>
+                <p class="invite-invalid-hint">It may have expired or already been used.<br>Ask the person who invited
+                    you for a new link.</p>
             </div>
         </div>
     </div>
@@ -133,9 +142,12 @@
                 <form id="user-change-pw-form" class="modal-form">
                     <div id="user-pw-error" class="error-msg hidden"></div>
                     <div id="user-pw-success" class="success-msg hidden"></div>
-                    <input type="password" id="user-current-pw" placeholder="Current password" required autocomplete="current-password">
-                    <input type="password" id="user-new-pw" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
-                    <input type="password" id="user-confirm-pw" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                    <input type="password" id="user-current-pw" placeholder="Current password" required
+                        autocomplete="current-password">
+                    <input type="password" id="user-new-pw" placeholder="New password (min 6 chars)" required
+                        minlength="6" autocomplete="new-password">
+                    <input type="password" id="user-confirm-pw" placeholder="Confirm new password" required
+                        minlength="6" autocomplete="new-password">
                     <button type="submit" class="btn-primary">Update Password</button>
                 </form>
             </div>
@@ -184,23 +196,28 @@
                         <div class="checklist">
                             <div class="checklist-item done" id="check-server">
                                 <span class="check-icon">✓</span>
-                                <div><strong>Server created</strong><br><span class="check-hint">Your Fireside server is running.</span></div>
+                                <div><strong>Server created</strong><br><span class="check-hint">Your Fireside server is
+                                        running.</span></div>
                             </div>
                             <div class="checklist-item" id="check-model">
                                 <span class="check-icon">○</span>
-                                <div><strong>Download an AI model</strong><br><span class="check-hint">Go to the Models tab to download your first model.</span></div>
+                                <div><strong>Download an AI model</strong><br><span class="check-hint">Go to the Models
+                                        tab to download your first model.</span></div>
                             </div>
                             <div class="checklist-item" id="check-message">
                                 <span class="check-icon">○</span>
-                                <div><strong>Send your first message</strong><br><span class="check-hint">Open Chat and start a conversation.</span></div>
+                                <div><strong>Send your first message</strong><br><span class="check-hint">Open Chat and
+                                        start a conversation.</span></div>
                             </div>
                             <div class="checklist-item" id="check-apikey">
                                 <span class="check-icon">○</span>
-                                <div><strong>Connect a tool via API</strong><br><span class="check-hint">Create an API key to use Fireside from Cursor, Python, etc.</span></div>
+                                <div><strong>Connect a tool via API</strong><br><span class="check-hint">Create an API
+                                        key to use Fireside from Cursor, Python, etc.</span></div>
                             </div>
                             <div class="checklist-item" id="check-invite">
                                 <span class="check-icon">○</span>
-                                <div><strong>Invite a friend</strong><br><span class="check-hint">Or skip — you can always use Fireside solo.</span></div>
+                                <div><strong>Invite a friend</strong><br><span class="check-hint">Or skip — you can
+                                        always use Fireside solo.</span></div>
                             </div>
                         </div>
                     </div>
@@ -239,7 +256,9 @@
                     </div>
                     <div id="pull-progress" class="pull-progress hidden">
                         <div class="pull-status" id="pull-status">Downloading...</div>
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" id="pull-bar"></div></div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="pull-bar"></div>
+                        </div>
                     </div>
 
                     <div class="admin-section-header" style="margin-top:1.5rem;">
@@ -253,7 +272,8 @@
                 <!-- Chat Tab (merged: users + invites + chat link) -->
                 <div id="dash-tab-chat" class="dash-tab">
                     <h1 class="dash-tab-title">Chat</h1>
-                    <p class="tab-intro">Fireside includes a built-in chat interface. <a href="#/chat" class="link-accent">Try it yourself →</a></p>
+                    <p class="tab-intro">Fireside includes a built-in chat interface. <a href="#/chat"
+                            class="link-accent">Try it yourself →</a></p>
 
                     <div class="admin-section-header">
                         <h2>Users</h2>
@@ -261,7 +281,12 @@
                     </div>
                     <table class="admin-table">
                         <thead>
-                            <tr><th>Username</th><th>Role</th><th>Joined</th><th></th></tr>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody id="users-tbody"></tbody>
                     </table>
@@ -269,7 +294,8 @@
 
                     <div class="admin-section-header" style="margin-top:2rem;">
                         <h2>Invite Someone</h2>
-                        <p class="admin-hint">Create a single-use link. When they open it, they'll create an account and can start chatting.</p>
+                        <p class="admin-hint">Create a single-use link. When they open it, they'll create an account and
+                            can start chatting.</p>
                     </div>
                     <div class="admin-form-row">
                         <select id="invite-expires">
@@ -291,7 +317,13 @@
                     <div id="pending-invites">
                         <table class="admin-table" id="invites-table">
                             <thead>
-                                <tr><th>Invite</th><th>Status</th><th>Expires</th><th>Created</th><th></th></tr>
+                                <tr>
+                                    <th>Invite</th>
+                                    <th>Status</th>
+                                    <th>Expires</th>
+                                    <th>Created</th>
+                                    <th></th>
+                                </tr>
                             </thead>
                             <tbody id="invites-tbody"></tbody>
                         </table>
@@ -302,13 +334,15 @@
                 <!-- API Tab (renamed from API Keys) -->
                 <div id="dash-tab-api" class="dash-tab">
                     <h1 class="dash-tab-title">API</h1>
-                    <p class="tab-intro">Give anyone an API key to connect external tools — Cursor, Python, or anything that speaks the OpenAI format. No account needed.</p>
+                    <p class="tab-intro">Give anyone an API key to connect external tools — Cursor, Python, or anything
+                        that speaks the OpenAI format. No account needed.</p>
 
                     <div class="admin-section-header">
                         <h2>Create API Key</h2>
                     </div>
                     <div class="admin-form-row">
-                        <input type="text" id="apikey-name" placeholder="Key name (e.g. my-laptop, sarah-cursor)" value="">
+                        <input type="text" id="apikey-name" placeholder="Key name (e.g. my-laptop, sarah-cursor)"
+                            value="">
                         <button id="create-apikey-btn" class="btn-primary">Create Key</button>
                     </div>
                     <div id="apikey-created" class="invite-created hidden">
@@ -324,7 +358,13 @@
                     </div>
                     <table class="admin-table">
                         <thead>
-                            <tr><th>Name</th><th>Prefix</th><th>Last Used</th><th>Created</th><th></th></tr>
+                            <tr>
+                                <th>Name</th>
+                                <th>Prefix</th>
+                                <th>Last Used</th>
+                                <th>Created</th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody id="apikeys-tbody"></tbody>
                     </table>
@@ -346,7 +386,8 @@
 
                     <div class="settings-section">
                         <h2>Tunnel URL</h2>
-                        <p class="admin-hint">Set this to your Cloudflare Tunnel URL so invite links use the public address.</p>
+                        <p class="admin-hint">Set this to your Cloudflare Tunnel URL so invite links use the public
+                            address.</p>
                         <div class="admin-form-row">
                             <input type="text" id="settings-tunnel-url" placeholder="e.g. https://ai.kazem.com">
                             <button id="save-tunnel-url-btn" class="btn-primary">Save</button>
@@ -357,8 +398,10 @@
                     <div class="settings-section">
                         <h2>Change Password</h2>
                         <form id="change-password-form" class="settings-password-form">
-                            <input type="password" id="settings-current-pw" placeholder="Current password" required autocomplete="current-password">
-                            <input type="password" id="settings-new-pw" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                            <input type="password" id="settings-current-pw" placeholder="Current password" required
+                                autocomplete="current-password">
+                            <input type="password" id="settings-new-pw" placeholder="New password (min 6 chars)"
+                                required minlength="6" autocomplete="new-password">
                             <button type="submit" class="btn-primary">Update Password</button>
                         </form>
                         <div id="settings-pw-msg" class="settings-msg hidden"></div>
@@ -377,8 +420,10 @@
                     <form id="admin-reset-pw-form" class="modal-form">
                         <div id="admin-reset-pw-error" class="error-msg hidden"></div>
                         <div id="admin-reset-pw-success" class="success-msg hidden"></div>
-                        <input type="password" id="admin-reset-new-pw" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
-                        <input type="password" id="admin-reset-confirm-pw" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                        <input type="password" id="admin-reset-new-pw" placeholder="New password (min 6 chars)" required
+                            minlength="6" autocomplete="new-password">
+                        <input type="password" id="admin-reset-confirm-pw" placeholder="Confirm new password" required
+                            minlength="6" autocomplete="new-password">
                         <button type="submit" class="btn-primary">Reset Password</button>
                     </form>
                 </div>
@@ -388,4 +433,5 @@
 
     <script type="module" src="/static/app.js"></script>
 </body>
+
 </html>

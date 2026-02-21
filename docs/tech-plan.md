@@ -232,3 +232,13 @@ Real users, real feedback, real bugs.
 - ❌ Security audit of encryption implementation
 - ❌ Post to: r/selfhosted, r/LocalLLaMA, Hacker News
 
+---
+
+### Phase 7: Post-MLP (V2 Ideas)
+Features that elevate the product but are not required for the initial launch.
+
+**Deliverables:**
+- ❌ Hardware detection (RAM, CPU, GPU) shown in Admin Dashboard
+- ❌ Model size warnings (e.g. warning admin when downloading a 32B model on a 16GB RAM machine)
+- ❌ Concurrency limits / Queueing (prevent 5 users from crashing the server simultaneously)
+
