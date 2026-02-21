@@ -107,6 +107,33 @@ func (db *DB) GetConfig(key string) (string, error) {
 	return value, err
 }
 
+// ResetServer wipes all data in the database, reverting to a clean state.
+func (db *DB) ResetServer() error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	tables := []string{
+		"api_keys",
+		"messages",
+		"conversations",
+		"sessions",
+		"invite_links",
+		"users",
+		"server_config",
+	}
+
+	for _, table := range tables {
+		if _, err := tx.Exec("DELETE FROM " + table); err != nil {
+			return fmt.Errorf("deleting %s: %w", table, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
 const schema = `
 CREATE TABLE IF NOT EXISTS server_config (
     key TEXT PRIMARY KEY,

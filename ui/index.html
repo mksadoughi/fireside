@@ -55,6 +55,8 @@
                         required>
                     <input type="password" id="setup-password" placeholder="Password (min 6 chars)"
                         autocomplete="new-password" required minlength="6">
+                    <input type="password" id="setup-confirm-pw" placeholder="Confirm password"
+                        autocomplete="new-password" required minlength="6">
                     <button type="submit" class="btn-primary">Create Server</button>
                 </form>
             </div>
@@ -75,6 +77,8 @@
                     <input type="text" id="invite-username" placeholder="Choose a username" autocomplete="username"
                         required>
                     <input type="password" id="invite-password" placeholder="Choose a password (min 6 chars)"
+                        autocomplete="new-password" required minlength="6">
+                    <input type="password" id="invite-confirm-pw" placeholder="Confirm password"
                         autocomplete="new-password" required minlength="6">
                     <button type="submit" class="btn-primary" id="invite-submit-btn">Join</button>
                 </form>
@@ -190,37 +194,6 @@
                 <!-- Overview Tab -->
                 <div id="dash-tab-overview" class="dash-tab active">
                     <h1 class="dash-tab-title">Overview</h1>
-
-                    <div id="getting-started" class="getting-started">
-                        <h2>Getting Started</h2>
-                        <div class="checklist">
-                            <div class="checklist-item done" id="check-server">
-                                <span class="check-icon">✓</span>
-                                <div><strong>Server created</strong><br><span class="check-hint">Your Fireside server is
-                                        running.</span></div>
-                            </div>
-                            <div class="checklist-item" id="check-model">
-                                <span class="check-icon">○</span>
-                                <div><strong>Download an AI model</strong><br><span class="check-hint">Go to the Models
-                                        tab to download your first model.</span></div>
-                            </div>
-                            <div class="checklist-item" id="check-message">
-                                <span class="check-icon">○</span>
-                                <div><strong>Send your first message</strong><br><span class="check-hint">Open Chat and
-                                        start a conversation.</span></div>
-                            </div>
-                            <div class="checklist-item" id="check-apikey">
-                                <span class="check-icon">○</span>
-                                <div><strong>Connect a tool via API</strong><br><span class="check-hint">Create an API
-                                        key to use Fireside from Cursor, Python, etc.</span></div>
-                            </div>
-                            <div class="checklist-item" id="check-invite">
-                                <span class="check-icon">○</span>
-                                <div><strong>Invite a friend</strong><br><span class="check-hint">Or skip — you can
-                                        always use Fireside solo.</span></div>
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="stats-grid" id="overview-stats">
                         <div class="stat-card">
@@ -405,6 +378,14 @@
                             <button type="submit" class="btn-primary">Update Password</button>
                         </form>
                         <div id="settings-pw-msg" class="settings-msg hidden"></div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2 style="color: var(--c-error)">Danger Zone</h2>
+                        <p class="admin-hint">Resetting the server wipes all users, messages, and settings. You will be
+                            sent back to the setup screen. <strong>This action only works when accessed directly from
+                                the host machine (localhost).</strong></p>
+                        <button id="reset-server-btn" class="btn-danger-sm">Reset Server</button>
                     </div>
                 </div>
 

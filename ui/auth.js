@@ -18,6 +18,12 @@ document.getElementById('setup-form').addEventListener('submit', async (e) => {
     const serverName = document.getElementById('setup-server-name').value.trim();
     const username = document.getElementById('setup-username').value.trim();
     const password = document.getElementById('setup-password').value;
+    const confirm = document.getElementById('setup-confirm-pw').value;
+
+    if (password !== confirm) {
+        showError('setup-error', 'Passwords do not match');
+        return;
+    }
 
     try {
         const { resp, data } = await api.postSetup({ server_name: serverName, username, password });
@@ -98,6 +104,12 @@ document.getElementById('invite-form').addEventListener('submit', async (e) => {
     const token = e.target.dataset.token;
     const username = document.getElementById('invite-username').value.trim();
     const password = document.getElementById('invite-password').value;
+    const confirm = document.getElementById('invite-confirm-pw').value;
+
+    if (password !== confirm) {
+        showError('invite-error', 'Passwords do not match');
+        return;
+    }
 
     const submitBtn = document.getElementById('invite-submit-btn');
     submitBtn.disabled = true;

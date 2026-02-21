@@ -90,6 +90,7 @@ func main() {
 	mux.HandleFunc("GET /api/admin/settings", requireAdmin(db, handleGetSettings(db)))
 	mux.HandleFunc("PUT /api/admin/settings", requireAdmin(db, handleUpdateSettings(db)))
 	mux.HandleFunc("PUT /api/admin/password", requireAdmin(db, handleChangePassword(db)))
+	mux.HandleFunc("POST /api/admin/reset", requireAdmin(db, handleResetServer(db)))
 
 	// OpenAI-compatible API (authenticated via API key in Bearer token)
 	mux.HandleFunc("POST /v1/chat/completions", requireAPIKey(db, handleOpenAIChatCompletions(db, ollama)))
@@ -367,6 +368,33 @@ func handleAdminResetPassword(db *DB) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "password reset"})
+	}
+}
+
+func handleResetServer(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Enforce localhost only security check
+		// Check the remote address. Wait for IPv4 and IPv6 loopback
+		isLocal := r.RemoteAddr[:9] == "127.0.0.1" || r.RemoteAddr[:5] == "[::1]"
+
+		// If Cloudflare Tunnel is used, we must check Cf-Connecting-Ip
+		// Realistically, if any Cf header exists, it's external.
+		if r.Header.Get("Cf-Connecting-Ip") != "" {
+			isLocal = false
+		}
+
+		if !isLocal {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "server reset can only be performed locally from the host machine"})
+			return
+		}
+
+		if err := db.ResetServer(); err != nil {
+			log.Printf("Failed to reset server: %v", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to reset database"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{"status": "reset"})
 	}
 }
 

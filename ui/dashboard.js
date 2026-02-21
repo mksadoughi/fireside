@@ -63,32 +63,7 @@ async function loadOverview() {
         document.getElementById('stat-messages').textContent = data.messages_today;
         document.getElementById('stat-models').textContent = data.models;
         document.getElementById('stat-sessions').textContent = data.active_sessions;
-
-        const gs = document.getElementById('getting-started');
-        const allDone = data.has_models && data.has_messages && data.has_api_keys && data.has_invites;
-
-        if (allDone) {
-            gs.classList.add('hidden');
-        } else {
-            gs.classList.remove('hidden');
-            updateCheckItem('check-model', data.has_models);
-            updateCheckItem('check-message', data.has_messages);
-            updateCheckItem('check-apikey', data.has_api_keys);
-            updateCheckItem('check-invite', data.has_invites);
-        }
     } catch { }
-}
-
-function updateCheckItem(id, done) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (done) {
-        el.classList.add('done');
-        el.querySelector('.check-icon').textContent = '✓';
-    } else {
-        el.classList.remove('done');
-        el.querySelector('.check-icon').textContent = '○';
-    }
 }
 
 // ==========================================================
@@ -439,6 +414,25 @@ document.getElementById('change-password-form').addEventListener('submit', async
         }
     } catch {
         showSettingsMsg('settings-pw-msg', 'Connection failed.', 'error');
+    }
+});
+
+document.getElementById('reset-server-btn').addEventListener('click', async () => {
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        alert("Server reset can only be performed securely from the host machine directly (localhost). It cannot be done remotely.");
+        return;
+    }
+    if (!confirm('WARNING: This will permanently delete ALL data on this server (users, messages, settings). Are you absolutely sure?')) return;
+    try {
+        const { resp, data } = await api.postResetServer();
+        if (resp.ok) {
+            window.location.href = '/#/setup';
+            window.location.reload();
+        } else {
+            alert(`Reset failed: ${data.error}`);
+        }
+    } catch {
+        alert('Connection failed.');
     }
 });
 
