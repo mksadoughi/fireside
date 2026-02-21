@@ -173,3 +173,29 @@ async function init() {
 
 window.addEventListener('hashchange', () => handleRoute());
 init();
+
+// ==========================================================
+// Server heartbeat — detect offline, auto-reconnect
+// ==========================================================
+
+let serverOnline = true;
+const banner = document.getElementById('offline-banner');
+
+async function heartbeat() {
+    try {
+        const resp = await fetch('/health', { signal: AbortSignal.timeout(5000) });
+        if (resp.ok && !serverOnline) {
+            serverOnline = true;
+            banner.classList.add('hidden');
+            await handleRoute();
+        }
+        serverOnline = resp.ok;
+    } catch {
+        if (serverOnline) {
+            serverOnline = false;
+            banner.classList.remove('hidden');
+        }
+    }
+}
+
+setInterval(heartbeat, 10000);

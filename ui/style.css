@@ -1181,3 +1181,25 @@ body {
 
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* --- Offline banner --- */
+
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: var(--danger);
+    color: #fff;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    animation: offline-pulse 2s ease-in-out infinite;
+}
+
+@keyframes offline-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
