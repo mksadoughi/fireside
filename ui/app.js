@@ -6,6 +6,7 @@ import * as api from './api.js';
 import { activateInvite } from './auth.js';
 import { activateChat } from './chat.js';
 import { activateAdmin } from './dashboard.js';
+import { clearKey } from './keystore.js';
 
 // --- Shared state (imported by other modules) ---
 export const state = {
@@ -108,6 +109,7 @@ function updateLoginServerName() {
 
 async function doLogout() {
     await api.postLogout();
+    await clearKey();
     state.currentUser = null;
     state.currentConversationId = null;
     navigate('/login');
@@ -150,7 +152,7 @@ async function init() {
         if (resp.ok) {
             state.currentUser = (await resp.json()).user;
         }
-    } catch {}
+    } catch { }
 
     if (!state.currentUser) {
         try {
@@ -166,7 +168,7 @@ async function init() {
     try {
         const resp = await api.getHealth();
         if (resp.ok) state.serverInfo = await resp.json();
-    } catch {}
+    } catch { }
 
     await handleRoute();
 }

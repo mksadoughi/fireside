@@ -270,7 +270,14 @@ func handleRegister(db *DB) http.HandlerFunc {
 		}
 
 		setSessionCookie(w, sessionID)
-		writeJSON(w, http.StatusCreated, map[string]any{"user": user})
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"user": map[string]any{
+				"id":             user.ID,
+				"username":       user.Username,
+				"is_admin":       user.IsAdmin,
+				"encryption_key": base64.StdEncoding.EncodeToString(user.EncryptionKey),
+			},
+		})
 	}
 }
 

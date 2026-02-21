@@ -5,6 +5,7 @@
 import * as api from './api.js';
 import { showError } from './helpers.js';
 import { state, navigate } from './app.js';
+import { saveKey } from './keystore.js';
 
 // --- Setup (2-step wizard) ---
 
@@ -31,6 +32,12 @@ document.getElementById('setup-form').addEventListener('submit', async (e) => {
             showError('setup-error', data.error);
             return;
         }
+
+        if (data.user && data.user.encryption_key) {
+            await saveKey(data.user.encryption_key);
+            delete data.user.encryption_key;
+        }
+
         state.currentUser = data.user;
         state.setupComplete = true;
         state.serverInfo = { status: 'ok', server_name: serverName };
@@ -58,6 +65,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             showError('login-error', data.error || 'Login failed');
             return;
         }
+
+        if (data.user && data.user.encryption_key) {
+            await saveKey(data.user.encryption_key);
+            delete data.user.encryption_key;
+        }
+
         state.currentUser = data.user;
         navigate(state.currentUser.is_admin ? '/dashboard' : '/chat');
     } catch {
@@ -123,6 +136,18 @@ document.getElementById('invite-form').addEventListener('submit', async (e) => {
             submitBtn.textContent = 'Join';
             return;
         }
+
+        if (data.user && data.user.encryption_key) {
+            await saveKey(data.user.encryption_key);
+            delete data.user.encryption_key;
+        }
+
+        // Fallback: also try to capture from URL hash if not in JSON
+        const hashParams = new URLSearchParams(window.location.hash.split('#')[2]);
+        if (hashParams.has('key')) {
+            await saveKey(hashParams.get('key'));
+        }
+
         state.currentUser = data.user;
         window.location.replace('/#/chat');
     } catch {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -18,12 +19,13 @@ import (
 
 // User represents a row from the users table.
 type User struct {
-	ID            int       `json:"id"`
-	Username      string    `json:"username"`
-	DisplayName   string    `json:"display_name,omitempty"`
-	IsAdmin       bool      `json:"is_admin"`
-	EncryptionKey []byte    `json:"-"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID                  int       `json:"id"`
+	Username            string    `json:"username"`
+	DisplayName         string    `json:"display_name,omitempty"`
+	IsAdmin             bool      `json:"is_admin"`
+	EncryptionKey       []byte    `json:"-"`
+	Base64EncryptionKey string    `json:"encryption_key,omitempty"` // populated only on login/setup/register
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type contextKey string
@@ -254,7 +256,12 @@ func handleSetup(db *DB) http.HandlerFunc {
 		setSessionCookie(w, sessionID)
 		log.Printf("Setup complete: admin=%q, server=%q", req.Username, req.ServerName)
 		writeJSON(w, http.StatusCreated, map[string]any{
-			"user":        user,
+			"user": map[string]any{
+				"id":             user.ID,
+				"username":       user.Username,
+				"is_admin":       user.IsAdmin,
+				"encryption_key": base64.StdEncoding.EncodeToString(user.EncryptionKey),
+			},
 			"server_name": req.ServerName,
 		})
 	}
@@ -343,7 +350,14 @@ func handleLogin(db *DB) http.HandlerFunc {
 		}
 
 		setSessionCookie(w, sessionID)
-		writeJSON(w, http.StatusOK, map[string]any{"user": user})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"user": map[string]any{
+				"id":             user.ID,
+				"username":       user.Username,
+				"is_admin":       user.IsAdmin,
+				"encryption_key": base64.StdEncoding.EncodeToString(user.EncryptionKey),
+			},
+		})
 	}
 }
 

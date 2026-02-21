@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fireside/ui"
 	"flag"
@@ -29,6 +30,7 @@ func main() {
 	port := flag.Int("port", 7654, "port to listen on")
 	ollamaURL := flag.String("ollama-url", "http://localhost:11434", "Ollama API base URL")
 	dataDir := flag.String("data-dir", defaultDataDir(), "data directory for database and config")
+	resetAdminPassword := flag.String("reset-admin", "", "force completely resets the password for the admin account to the specified password")
 	flag.Parse()
 
 	dbPath := filepath.Join(*dataDir, "data.db")
@@ -38,6 +40,29 @@ func main() {
 	}
 	defer db.Close()
 	log.Printf("Database: %s", dbPath)
+
+	if *resetAdminPassword != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(*resetAdminPassword), 12)
+		if err != nil {
+			log.Fatalf("Failed to hash new password: %v", err)
+		}
+		res, err := db.conn.Exec("UPDATE users SET password_hash = ? WHERE is_admin = 1", string(hash))
+		if err != nil {
+			log.Fatalf("Failed to update admin password: %v", err)
+		}
+		rows, _ := res.RowsAffected()
+		if rows == 0 {
+			log.Fatalf("No admin user found. Please complete initial setup first.")
+		}
+
+		// Invalidate all active sessions for the admin user so they are forcefully logged out
+		if _, err := db.conn.Exec("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE is_admin = 1)"); err != nil {
+			log.Printf("Warning: failed to clear active admin sessions: %v", err)
+		}
+
+		log.Printf("Successfully updated admin password. You may now start the server normally.")
+		os.Exit(0)
+	}
 
 	ollama := NewOllamaClient(*ollamaURL)
 
@@ -389,9 +414,11 @@ func handleListModels(ollama *OllamaClient) http.HandlerFunc {
 
 // ConversationChatRequest extends ChatRequest with an optional conversation ID.
 type ConversationChatRequest struct {
-	ConversationID *int   `json:"conversation_id"`
 	Model          string `json:"model"`
 	Message        string `json:"message"`
+	ConversationID *int   `json:"conversation_id,omitempty"`
+	Encrypted      bool   `json:"encrypted"`
+	IV             string `json:"iv"`
 }
 
 func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
@@ -405,6 +432,19 @@ func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 		if req.Model == "" || req.Message == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "model and message are required"})
 			return
+		}
+
+		if req.Encrypted && len(user.EncryptionKey) == 32 {
+			ivBytes, err := base64.StdEncoding.DecodeString(req.IV)
+			if err == nil {
+				cipherBytes, err := base64.StdEncoding.DecodeString(req.Message)
+				if err == nil {
+					plaintext, err := DecryptAESGCM(user.EncryptionKey, ivBytes, cipherBytes)
+					if err == nil {
+						req.Message = string(plaintext)
+					}
+				}
+			}
 		}
 
 		convo, messages, err := prepareChat(db, user, &req)
@@ -424,8 +464,17 @@ func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 		}
 
 		// Save both messages
-		db.AddMessage(convo.ID, "user", req.Message, nil)
-		db.AddMessage(convo.ID, "assistant", resp.Message.Content, nil)
+		db.AddMessage(convo.ID, "user", req.Message, nil, user.EncryptionKey)
+		db.AddMessage(convo.ID, "assistant", resp.Message.Content, nil, user.EncryptionKey)
+
+		if req.Encrypted && len(user.EncryptionKey) == 32 {
+			cipherBytes, ivBytes, err := EncryptAESGCM(user.EncryptionKey, []byte(resp.Message.Content))
+			if err == nil {
+				resp.Message.Content = base64.StdEncoding.EncodeToString(cipherBytes)
+				resp.Message.IV = base64.StdEncoding.EncodeToString(ivBytes)
+				resp.Message.Encrypted = true
+			}
+		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"conversation_id": convo.ID,
@@ -446,6 +495,19 @@ func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc 
 		if req.Model == "" || req.Message == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "model and message are required"})
 			return
+		}
+
+		if req.Encrypted && len(user.EncryptionKey) == 32 {
+			ivBytes, err := base64.StdEncoding.DecodeString(req.IV)
+			if err == nil {
+				cipherBytes, err := base64.StdEncoding.DecodeString(req.Message)
+				if err == nil {
+					plaintext, err := DecryptAESGCM(user.EncryptionKey, ivBytes, cipherBytes)
+					if err == nil {
+						req.Message = string(plaintext)
+					}
+				}
+			}
 		}
 
 		convo, messages, err := prepareChat(db, user, &req)
@@ -471,11 +533,21 @@ func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc 
 		flusher.Flush()
 
 		// Save user message
-		db.AddMessage(convo.ID, "user", req.Message, nil)
+		db.AddMessage(convo.ID, "user", req.Message, nil, user.EncryptionKey)
 
 		var fullResponse string
 		err = ollama.ChatStream(req.Model, messages, nil, func(chunk StreamChunk) error {
 			fullResponse += chunk.Content
+
+			if req.Encrypted && len(user.EncryptionKey) == 32 {
+				cipherBytes, ivBytes, err := EncryptAESGCM(user.EncryptionKey, []byte(chunk.Content))
+				if err == nil {
+					chunk.Content = base64.StdEncoding.EncodeToString(cipherBytes)
+					chunk.IV = base64.StdEncoding.EncodeToString(ivBytes)
+					chunk.Encrypted = true
+				}
+			}
+
 			data, _ := json.Marshal(chunk)
 			fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
@@ -490,7 +562,7 @@ func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc 
 		}
 
 		// Save assistant response
-		db.AddMessage(convo.ID, "assistant", fullResponse, nil)
+		db.AddMessage(convo.ID, "assistant", fullResponse, nil, user.EncryptionKey)
 
 		fmt.Fprintf(w, "data: [DONE]\n\n")
 		flusher.Flush()
@@ -513,7 +585,7 @@ func prepareChat(db *DB, user *User, req *ConversationChatRequest) (*Conversatio
 		}
 
 		// Load existing messages as context for the LLM
-		stored, err := db.GetMessages(convo.ID, user.ID)
+		stored, err := db.GetMessages(convo.ID, user.ID, user.EncryptionKey, true)
 		if err != nil {
 			return nil, nil, fmt.Errorf("loading messages: %v", err)
 		}
@@ -566,7 +638,7 @@ func handleGetConversation(db *DB) http.HandlerFunc {
 			return
 		}
 
-		messages, err := db.GetMessages(convo.ID, user.ID)
+		messages, err := db.GetMessages(convo.ID, user.ID, user.EncryptionKey, false)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load messages"})
 			return

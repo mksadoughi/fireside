@@ -6,6 +6,8 @@ import * as api from './api.js';
 import { escapeHtml } from './helpers.js';
 import { renderMarkdown } from './markdown.js';
 import { state } from './app.js';
+import { getKey } from './keystore.js';
+import { encryptMessage, decryptMessage } from './crypto.js';
 
 const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
@@ -47,7 +49,7 @@ async function loadModels() {
             opt.textContent = `${m.name} (${m.details.parameter_size})`;
             modelSelect.appendChild(opt);
         }
-    } catch {}
+    } catch { }
 }
 
 async function loadConversations() {
@@ -56,7 +58,7 @@ async function loadConversations() {
         const data = await resp.json();
         conversations = data.conversations || [];
         renderConversations();
-    } catch {}
+    } catch { }
 }
 
 function renderConversations() {
@@ -86,11 +88,17 @@ async function openConversation(id) {
     try {
         const resp = await api.getConversation(id);
         const data = await resp.json();
+
+        const key = await getKey();
         for (const msg of data.messages || []) {
-            appendMessage(msg.role, msg.content);
+            let content = msg.content;
+            if (msg.encrypted && key) {
+                content = await decryptMessage(key, msg.iv, content);
+            }
+            appendMessage(msg.role, content);
         }
         scrollToBottom();
-    } catch {}
+    } catch { }
 }
 
 async function deleteConversation(id) {
@@ -102,7 +110,7 @@ async function deleteConversation(id) {
             showWelcome();
         }
         await loadConversations();
-    } catch {}
+    } catch { }
 }
 
 function startNewChat() {
@@ -151,6 +159,18 @@ async function sendMessage() {
     const body = { model: modelSelect.value, message: text };
     if (state.currentConversationId) body.conversation_id = state.currentConversationId;
 
+    const key = await getKey();
+    if (key) {
+        try {
+            const { ciphertextB64, ivB64 } = await encryptMessage(key, text);
+            body.message = ciphertextB64;
+            body.iv = ivB64;
+            body.encrypted = true;
+        } catch (err) {
+            console.error("Encryption failed:", err);
+        }
+    }
+
     isStreaming = true;
     sendBtn.disabled = true;
 
@@ -184,11 +204,15 @@ async function sendMessage() {
                         continue;
                     }
                     if (data.content) {
-                        fullText += data.content;
+                        let textChunk = data.content;
+                        if (data.encrypted && key) {
+                            textChunk = await decryptMessage(key, data.iv, data.content);
+                        }
+                        fullText += textChunk;
                         textEl.textContent = fullText;
                         scrollToBottom();
                     }
-                } catch {}
+                } catch { }
             }
         }
 

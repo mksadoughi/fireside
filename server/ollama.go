@@ -141,8 +141,10 @@ func (c *OllamaClient) DeleteModel(name string) error {
 
 // ChatMessage is a single message in a conversation (user, assistant, or system).
 type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+	Encrypted bool   `json:"encrypted,omitempty"`
+	IV        string `json:"iv,omitempty"`
 }
 
 // ChatRequest is what our server accepts from clients.
@@ -209,8 +211,10 @@ func (c *OllamaClient) Chat(model string, messages []ChatMessage, options map[st
 
 // StreamChunk is one piece of a streaming response.
 type StreamChunk struct {
-	Content string `json:"content"`
-	Done    bool   `json:"done"`
+	Content   string `json:"content"`
+	Encrypted bool   `json:"encrypted,omitempty"`
+	IV        string `json:"iv,omitempty"`
+	Done      bool   `json:"done"`
 }
 
 // ChatStream sends a streaming chat request. It calls onChunk for each token

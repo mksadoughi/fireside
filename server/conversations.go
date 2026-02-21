@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"time"
 )
@@ -22,6 +23,8 @@ type Message struct {
 	ConversationID int       `json:"conversation_id"`
 	Role           string    `json:"role"`
 	Content        string    `json:"content"`
+	Encrypted      bool      `json:"encrypted,omitempty"`
+	IV             string    `json:"iv,omitempty"`
 	TokenCount     *int      `json:"token_count,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 }
@@ -118,12 +121,26 @@ func (db *DB) touchConversation(id int) {
 }
 
 // AddMessage stores a message in a conversation.
-// For now, content is stored as plaintext. Encryption will be added in Phase 3.
-func (db *DB) AddMessage(conversationID int, role, content string, tokenCount *int) (*Message, error) {
+// Encrypts the content using the user's per-user AES-256 key before storing.
+func (db *DB) AddMessage(conversationID int, role, content string, tokenCount *int, encryptionKey []byte) (*Message, error) {
+	var ciphertext, iv []byte
+	var err error
+
+	if len(encryptionKey) == 32 {
+		ciphertext, iv, err = EncryptAESGCM(encryptionKey, []byte(content))
+		if err != nil {
+			return nil, fmt.Errorf("encryption failed: %w", err)
+		}
+	} else {
+		// Fallback to plaintext if no valid key is provided (legacy behavior)
+		ciphertext = []byte(content)
+		iv = []byte("plaintext")
+	}
+
 	result, err := db.conn.Exec(`
 		INSERT INTO messages (conversation_id, role, content_encrypted, content_iv, token_count)
 		VALUES (?, ?, ?, ?, ?)
-	`, conversationID, role, []byte(content), []byte("plaintext"), tokenCount)
+	`, conversationID, role, ciphertext, iv, tokenCount)
 	if err != nil {
 		return nil, fmt.Errorf("inserting message: %w", err)
 	}
@@ -135,14 +152,15 @@ func (db *DB) AddMessage(conversationID int, role, content string, tokenCount *i
 		ID:             int(id),
 		ConversationID: conversationID,
 		Role:           role,
-		Content:        content,
+		Content:        content, // Return plaintext to caller
 		TokenCount:     tokenCount,
 	}, nil
 }
 
 // GetMessages returns all messages in a conversation, oldest first.
-// For now, reads plaintext. Encryption will be added in Phase 3.
-func (db *DB) GetMessages(conversationID, userID int) ([]Message, error) {
+// If decrypt is true, decrypts messages using the user's encryption key.
+// If decrypt is false, serves raw base64 cipher and IV strings for the client.
+func (db *DB) GetMessages(conversationID, userID int, encryptionKey []byte, decrypt bool) ([]Message, error) {
 	// Verify the conversation belongs to the user
 	var ownerID int
 	err := db.conn.QueryRow(`SELECT user_id FROM conversations WHERE id = ?`, conversationID).Scan(&ownerID)
@@ -157,7 +175,7 @@ func (db *DB) GetMessages(conversationID, userID int) ([]Message, error) {
 	}
 
 	rows, err := db.conn.Query(`
-		SELECT id, conversation_id, role, content_encrypted, token_count, created_at
+		SELECT id, conversation_id, role, content_encrypted, content_iv, token_count, created_at
 		FROM messages WHERE conversation_id = ?
 		ORDER BY created_at ASC
 	`, conversationID)
@@ -170,10 +188,30 @@ func (db *DB) GetMessages(conversationID, userID int) ([]Message, error) {
 	for rows.Next() {
 		var m Message
 		var contentBytes []byte
-		if err := rows.Scan(&m.ID, &m.ConversationID, &m.Role, &contentBytes, &m.TokenCount, &m.CreatedAt); err != nil {
+		var ivBytes []byte
+		if err := rows.Scan(&m.ID, &m.ConversationID, &m.Role, &contentBytes, &ivBytes, &m.TokenCount, &m.CreatedAt); err != nil {
 			return nil, err
 		}
-		m.Content = string(contentBytes)
+
+		if string(ivBytes) == "plaintext" {
+			m.Content = string(contentBytes)
+		} else if decrypt {
+			if len(encryptionKey) == 32 {
+				plaintext, err := DecryptAESGCM(encryptionKey, ivBytes, contentBytes)
+				if err != nil {
+					m.Content = "[Encrypted Content: Decryption Failed]"
+				} else {
+					m.Content = string(plaintext)
+				}
+			} else {
+				m.Content = "[Encrypted Content: Missing Key]"
+			}
+		} else {
+			m.Content = base64.StdEncoding.EncodeToString(contentBytes)
+			m.Encrypted = true
+			m.IV = base64.StdEncoding.EncodeToString(ivBytes)
+		}
+
 		messages = append(messages, m)
 	}
 	return messages, rows.Err()
