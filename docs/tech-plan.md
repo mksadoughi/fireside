@@ -134,7 +134,7 @@ The thing Clients actually see and use. This is the product.
 - ✅ Code blocks with syntax highlighting + copy button
 - ✅ Trust indicator footer — shows "Private AI · {server name}" dynamically
 - ✅ Client password change (accessible from chat sidebar)
-- ❌ Offline page / auto-reconnect
+- ✅ Offline detection banner with auto-reconnect (10s heartbeat)
 - ✅ Embed UI in Go binary via `embed` package
 
 **Dashboard deliverables (admin only):**
@@ -149,6 +149,8 @@ The thing Clients actually see and use. This is the product.
   - ✅ Delete/revoke user button
   - ✅ Admin reset user password button + modal
 - ✅ API tab — create keys, list active keys, revoke
+
+**Status: COMPLETE**
 
 **Milestone:** A Host can open `localhost:7654`, log in, manage their server from a sidebar dashboard (Server: Overview/Models/Settings, Interfaces: Chat/API), and chat. Clients can register via single-use invite link and chat. Works on desktop and mobile.
 
