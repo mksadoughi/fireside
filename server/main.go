@@ -2,20 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"fireside/ui"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-// uiDir is resolved at startup to serve the UI files.
-var uiDir string
-
+// Data dir resolution and constants
 func defaultDataDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -42,13 +43,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Resolve UI directory (look for ../ui relative to the binary, or CWD)
-	uiDir = findUIDir()
-	if uiDir != "" {
-		log.Printf("Serving UI from: %s", uiDir)
-		mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir(uiDir))))
-		mux.HandleFunc("GET /", serveIndex)
-	}
+	log.Printf("Serving UI from embedded static files")
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(ui.FS))))
+	mux.HandleFunc("GET /", serveIndex)
 
 	// Public endpoints
 	mux.HandleFunc("GET /health", handleHealth(db))
@@ -124,39 +121,13 @@ func handleHealth(db *DB) http.HandlerFunc {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" && r.URL.Path != "/index.html" {
-		// For any unmatched path, serve index.html (SPA-style routing)
-		http.ServeFile(w, r, filepath.Join(uiDir, "index.html"))
+	content, err := ui.FS.ReadFile("index.html")
+	if err != nil {
+		http.Error(w, "UI not found", http.StatusNotFound)
 		return
 	}
-	http.ServeFile(w, r, filepath.Join(uiDir, "index.html"))
-}
-
-func findUIDir() string {
-	// Check relative to CWD: ../ui (when running from server/ during development)
-	candidates := []string{
-		"../ui",
-		"ui",
-		"./ui",
-	}
-
-	// Also check relative to executable
-	if exe, err := os.Executable(); err == nil {
-		candidates = append(candidates, filepath.Join(filepath.Dir(exe), "..", "ui"))
-	}
-
-	for _, dir := range candidates {
-		abs, err := filepath.Abs(dir)
-		if err != nil {
-			continue
-		}
-		if _, err := os.Stat(filepath.Join(abs, "index.html")); err == nil {
-			return abs
-		}
-	}
-
-	log.Println("Warning: UI directory not found, web interface will not be available")
-	return ""
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(content)
 }
 
 // --- Admin: Stats ---
@@ -374,15 +345,14 @@ func handleAdminResetPassword(db *DB) http.HandlerFunc {
 
 func handleResetServer(db *DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Enforce localhost only security check
-		// Check the remote address. Wait for IPv4 and IPv6 loopback
-		isLocal := r.RemoteAddr[:9] == "127.0.0.1" || r.RemoteAddr[:5] == "[::1]"
-
-		// If Cloudflare Tunnel is used, we must check Cf-Connecting-Ip
-		// Realistically, if any Cf header exists, it's external.
+		// Enforce localhost only — if Cf-Connecting-Ip header exists, it's coming through the tunnel
 		if r.Header.Get("Cf-Connecting-Ip") != "" {
-			isLocal = false
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "server reset can only be performed locally from the host machine"})
+			return
 		}
+
+		host, _, _ := net.SplitHostPort(r.RemoteAddr)
+		isLocal := host == "127.0.0.1" || host == "::1"
 
 		if !isLocal {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "server reset can only be performed locally from the host machine"})
@@ -394,6 +364,9 @@ func handleResetServer(db *DB) http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to reset database"})
 			return
 		}
+
+		// Reset the rate limiter map on server wipe
+		loginAttempts = sync.Map{}
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "reset"})
 	}

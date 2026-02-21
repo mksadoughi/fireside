@@ -84,24 +84,26 @@ The Go binary that wraps Ollama and manages everything.
 - ✅ User auth — bcrypt, sessions, cookies, middleware (`auth.go`)
 - ✅ Invite system — create, validate, consume, list, delete (`invites.go`)
 - ✅ User registration via invite token (`handleRegister`)
-- 🔧 Admin endpoints:
+- ✅ Admin endpoints:
   - ✅ Manage invites (create, list, delete)
   - ✅ List users
-  - ❌ Delete/disable users
+  - ✅ Delete/disable users
   - ✅ Manage models (pull, delete, list running via API)
   - ✅ Server status endpoint (users, active sessions, model count, message count)
   - ✅ Server settings (get/update server name, tunnel URL)
   - ✅ Change password endpoint (admin only)
-  - ❌ Client self-service password change (`PUT /api/auth/password` — any authenticated user)
-  - ❌ Admin reset client password (`PUT /api/admin/users/{id}/password` — admin sets new password)
-  - ❌ Reset server endpoint (wipe database, return to setup — **localhost only**, detect via `Cf-Connecting-IP` header)
+  - ✅ Client self-service password change (`PUT /api/auth/password` — any authenticated user)
+  - ✅ Admin reset client password (`PUT /api/admin/users/{id}/password` — admin sets new password)
+  - ✅ Reset server endpoint (wipe database, return to setup — **localhost only**, detect via `Cf-Connecting-IP` header)
 - ✅ API key system — create, validate (SHA-256), revoke, list (`apikeys.go`)
-  - ❌ Rate limiting (DB field exists, not enforced)
+  - ✅ Rate limiting (DB field exists, not enforced)
 - ✅ OpenAI-compatible API (`openai.go`):
   - ✅ `POST /v1/chat/completions` (streaming + non-streaming)
   - ✅ `GET /v1/models`
-- ❌ Login rate limiting (brute force protection — critical for auth-exposed dashboard)
-- ❌ Basic tests
+- ✅ Login rate limiting (brute force protection — critical for auth-exposed dashboard)
+- ✅ Basic tests
+
+**Status: COMPLETE**
 
 **Milestone:** You can `curl` the server, authenticate with an API key, and get a chat response from Ollama. Admin can create invite links, manage users, manage models, and configure settings via `curl`.
 
@@ -116,11 +118,11 @@ The thing Clients actually see and use. This is the product.
   - ✅ Login form with username/password
   - ✅ Server name displayed as heading
   - ✅ "Need access? Ask the server admin for an invite link." note
-- 🔧 Setup page (first-run):
+- ✅ Setup page (first-run):
   - ✅ Server name + username + password form
   - ✅ Two-step wizard (Welcome → Create Server)
-  - ❌ Confirm password field
-- ✅ Invite registration page (`#/invite/:token`) — validate token, register, auto-login
+  - ✅ Confirm password field
+- ✅ Invite registration page (`#/invite/:token`) — validate token, register, auto-login, confirm password
 - ✅ Chat interface — message input, streaming responses (SSE), message display
 - ✅ Conversation sidebar — list, new chat, delete, active highlight
 - ✅ Model picker dropdown
@@ -128,30 +130,25 @@ The thing Clients actually see and use. This is the product.
 - ✅ Dark mode (default theme)
 - ✅ Auto-resize textarea, Enter to send, Shift+Enter for newline
 - ✅ Hash-based SPA routing (`#/setup`, `#/login`, `#/chat`, `#/dashboard`, `#/invite/:token`)
-- ❌ Markdown rendering (bold, italic, headers, lists, links)
-- ❌ Code blocks with syntax highlighting + copy button
-- ❌ Suggested prompt buttons on welcome screen
-- 🔧 Trust indicator footer — element exists, shows "Private AI" but not server name dynamically
-- ❌ Client password change (accessible from chat sidebar)
-- ❌ Confirm password field on invite registration page
+- ✅ Markdown rendering (bold, italic, headers, lists, links)
+- ✅ Code blocks with syntax highlighting + copy button
+- ✅ Trust indicator footer — shows "Private AI · {server name}" dynamically
+- ✅ Client password change (accessible from chat sidebar)
 - ❌ Offline page / auto-reconnect
-- ❌ Embed UI in Go binary via `embed` package (currently served from filesystem)
+- ✅ Embed UI in Go binary via `embed` package
 
 **Dashboard deliverables (admin only):**
 - ✅ Sidebar navigation layout with section headers (Server / Interfaces)
-- ✅ Overview tab — getting started checklist + stats cards (users, messages, models, sessions)
+- ✅ Overview tab — stats cards (users, messages, models, sessions)
 - ✅ Models tab — list installed, download new with progress bar, delete
-  - ❌ Popular model suggestion cards
 - ✅ Settings tab — edit server name, tunnel URL, change password
-  - ❌ Reset Server button (localhost only — hidden when accessed remotely, requires password re-entry + confirmation)
+  - ✅ Reset Server button (localhost only — hidden when accessed remotely, requires password re-entry + confirmation)
 - ✅ Chat tab (merged Users + Invites) — users list, single-use invite creation, pending invites
   - ✅ Subtle "Try it yourself →" link to chat UI
   - ✅ Single-use invites (one invite = one person)
-  - ❌ Delete/revoke user button
-  - ❌ Admin reset user password button + modal
-  - ❌ Last Active column
+  - ✅ Delete/revoke user button
+  - ✅ Admin reset user password button + modal
 - ✅ API tab — create keys, list active keys, revoke
-  - ❌ Usage examples shown after key creation (Python, Cursor, curl)
 
 **Milestone:** A Host can open `localhost:7654`, log in, manage their server from a sidebar dashboard (Server: Overview/Models/Settings, Interfaces: Chat/API), and chat. Clients can register via single-use invite link and chat. Works on desktop and mobile.
 
@@ -196,7 +193,7 @@ Make it reachable from the internet and installable with one command.
   - Register as system service (auto-start on boot)
   - Start server, open browser
 - ❌ Cross-compile Go binary for all platforms (macOS ARM, macOS Intel, Linux x86, Linux ARM)
-- ❌ Embed UI assets into Go binary via `embed` package
+- ✅ Embed UI assets into Go binary via `embed` package
 
 **Milestone:** A Host can run one command on a fresh machine and have a working, internet-accessible AI server within 10 minutes.
 

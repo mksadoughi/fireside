@@ -58,16 +58,17 @@ def test_user_creation_and_revocation(setup_and_login):
 def test_login_rate_limiting():
     """Test that submitting wrong passwords triggers a 429 Too Many Requests error"""
     # Attempt 6 rapid failed logins
+    headers = {"X-Forwarded-For": "2.2.2.2"}
     for _ in range(6):
         res = requests.post(f"{BASE_URL}/api/auth/login", json={
             "username": "admin",
             "password": "wrongpassword"
-        })
+        }, headers=headers)
         
     # The 6th or 7th attempt should be rate limited
     res = requests.post(f"{BASE_URL}/api/auth/login", json={
         "username": "admin",
         "password": "wrongpassword"
-    })
+    }, headers=headers)
     
     assert res.status_code == 429, "Expected status code 429 Too Many Requests"

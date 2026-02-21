@@ -215,13 +215,25 @@ async function loadUsers() {
                 <td>${escapeHtml(u.display_name || u.username)}</td>
                 <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">User</span>'}</td>
                 <td>${formatDate(u.created_at)}</td>
-                <td>${!u.is_admin ? `<button class="btn-text-sm" data-reset-pw-user="${u.id}" data-reset-pw-name="${escapeHtml(u.username)}">Reset Password</button>` : ''}</td>
+                <td>
+                    ${!u.is_admin ? `<button class="btn-text-sm" data-reset-pw-user="${u.id}" data-reset-pw-name="${escapeHtml(u.username)}">Reset Password</button>
+                    <button class="btn-danger-sm" data-revoke-user="${u.id}">Revoke</button>` : ''}
+                </td>
             </tr>
         `).join('');
 
         // Attach reset password handlers
         tbody.querySelectorAll('[data-reset-pw-user]').forEach(btn => {
             btn.addEventListener('click', () => openResetPasswordModal(btn.dataset.resetPwUser, btn.dataset.resetPwName));
+        });
+
+        // Attach revoke handlers
+        tbody.querySelectorAll('[data-revoke-user]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('Revoke this user? They will lose access immediately and all their history will be deleted.')) return;
+                await api.deleteUserAPI(btn.dataset.revokeUser);
+                await loadUsers();
+            });
         });
     } catch { }
 }

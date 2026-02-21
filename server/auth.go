@@ -404,6 +404,16 @@ func handleDeleteUser(db *DB) http.HandlerFunc {
 			return
 		}
 
+		target, err := db.GetUserByID(id)
+		if err != nil || target == nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+			return
+		}
+		if target.IsAdmin {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "cannot delete an admin user"})
+			return
+		}
+
 		if err := db.DeleteUser(id); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete user"})
 			return

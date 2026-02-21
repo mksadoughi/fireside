@@ -1,4 +1,4 @@
-module github.com/fireside/server
+module fireside
 
 go 1.25.0
 

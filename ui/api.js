@@ -50,6 +50,7 @@ export const getAdminInvites = () => fetch('/api/admin/invites');
 export const createInvite = (body) => fetchJSON('/api/admin/invites', { method: 'POST', body: JSON.stringify(body) });
 export const deleteInviteAPI = (id) => fetch(`/api/admin/invites/${id}`, { method: 'DELETE' });
 export const getAdminUsers = () => fetch('/api/admin/users');
+export const deleteUserAPI = (id) => fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
 export const getAdminAPIKeys = () => fetch('/api/admin/api-keys');
 export const createAPIKey = (body) => fetchJSON('/api/admin/api-keys', { method: 'POST', body: JSON.stringify(body) });
 export const deleteAPIKeyAPI = (id) => fetch(`/api/admin/api-keys/${id}`, { method: 'DELETE' });
