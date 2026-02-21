@@ -26,19 +26,19 @@ type openAIRequest struct {
 }
 
 type openAIResponse struct {
-	ID      string           `json:"id"`
-	Object  string           `json:"object"`
-	Created int64            `json:"created"`
-	Model   string           `json:"model"`
-	Choices []openAIChoice   `json:"choices"`
-	Usage   *openAIUsage     `json:"usage,omitempty"`
+	ID      string         `json:"id"`
+	Object  string         `json:"object"`
+	Created int64          `json:"created"`
+	Model   string         `json:"model"`
+	Choices []openAIChoice `json:"choices"`
+	Usage   *openAIUsage   `json:"usage,omitempty"`
 }
 
 type openAIChoice struct {
-	Index        int              `json:"index"`
-	Message      *openAIMessage   `json:"message,omitempty"`
-	Delta        *openAIMessage   `json:"delta,omitempty"`
-	FinishReason *string          `json:"finish_reason"`
+	Index        int            `json:"index"`
+	Message      *openAIMessage `json:"message,omitempty"`
+	Delta        *openAIMessage `json:"delta,omitempty"`
+	FinishReason *string        `json:"finish_reason"`
 }
 
 type openAIMessage struct {
@@ -53,8 +53,8 @@ type openAIUsage struct {
 }
 
 type openAIModelsResponse struct {
-	Object string          `json:"object"`
-	Data   []openAIModel   `json:"data"`
+	Object string        `json:"object"`
+	Data   []openAIModel `json:"data"`
 }
 
 type openAIModel struct {
@@ -99,7 +99,8 @@ func handleOpenAIChatCompletions(db *DB, ollama *OllamaClient) http.HandlerFunc 
 }
 
 func handleOpenAINonStream(w http.ResponseWriter, ollama *OllamaClient, req *openAIRequest, id string, created int64) {
-	resp, err := ollama.Chat(req.Model, req.Messages)
+	opts := buildOllamaOptions(req)
+	resp, err := ollama.Chat(req.Model, req.Messages, opts)
 	if err != nil {
 		log.Printf("Ollama error: %v", err)
 		writeOpenAIError(w, http.StatusBadGateway, "server_error", fmt.Sprintf("Model inference failed: %v", err))
@@ -159,7 +160,9 @@ func handleOpenAIStream(w http.ResponseWriter, ollama *OllamaClient, req *openAI
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
 
-	err := ollama.ChatStream(req.Model, req.Messages, func(chunk StreamChunk) error {
+	opts := buildOllamaOptions(req)
+
+	err := ollama.ChatStream(req.Model, req.Messages, opts, func(chunk StreamChunk) error {
 		if chunk.Done {
 			return nil
 		}
@@ -247,4 +250,38 @@ func writeOpenAIError(w http.ResponseWriter, status int, errType, message string
 			"type":    errType,
 		},
 	})
+}
+
+// buildOllamaOptions translates OpenAI API parameters into the specific tuning options that Ollama's engine expects.
+// Ollama maps most of these 1:1, but uses 'num_predict' instead of 'max_tokens'.
+func buildOllamaOptions(req *openAIRequest) map[string]any {
+	opts := make(map[string]any)
+
+	if req.Temperature != nil {
+		opts["temperature"] = *req.Temperature
+	}
+	if req.TopP != nil {
+		opts["top_p"] = *req.TopP
+	}
+	if req.FrequencyPenalty != nil {
+		opts["frequency_penalty"] = *req.FrequencyPenalty
+	}
+	if req.PresencePenalty != nil {
+		opts["presence_penalty"] = *req.PresencePenalty
+	}
+	if req.Stop != nil {
+		opts["stop"] = req.Stop
+	}
+
+	// OpenAI recently introduced max_completion_tokens. Map both to num_predict.
+	if req.MaxTokens != nil {
+		opts["num_predict"] = *req.MaxTokens
+	} else if req.MaxCompTokens != nil {
+		opts["num_predict"] = *req.MaxCompTokens
+	}
+
+	if len(opts) == 0 {
+		return nil
+	}
+	return opts
 }

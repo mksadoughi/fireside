@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -121,6 +123,12 @@ func (db *DB) ListUsers() ([]User, error) {
 		users = append(users, u)
 	}
 	return users, rows.Err()
+}
+
+// DeleteUser removes a user and automatically cascades to their sessions and messages.
+func (db *DB) DeleteUser(id int) error {
+	_, err := db.conn.Exec("DELETE FROM users WHERE id = ?", id)
+	return err
 }
 
 // --- Session management ---
@@ -252,8 +260,61 @@ func handleSetup(db *DB) http.HandlerFunc {
 	}
 }
 
+// --- Rate Limiter for Login ---
+var loginAttempts sync.Map
+
+type rateLimitEntry struct {
+	attempts int
+	window   time.Time
+}
+
+func checkRateLimit(ip string) bool {
+	now := time.Now()
+	val, ok := loginAttempts.Load(ip)
+	if !ok {
+		loginAttempts.Store(ip, &rateLimitEntry{attempts: 1, window: now.Add(15 * time.Minute)})
+		return true
+	}
+
+	entry := val.(*rateLimitEntry)
+	if now.After(entry.window) {
+		loginAttempts.Store(ip, &rateLimitEntry{attempts: 1, window: now.Add(15 * time.Minute)})
+		return true
+	}
+
+	entry.attempts++
+	if entry.attempts > 5 {
+		return false
+	}
+	return true
+}
+
+func resetRateLimit(ip string) {
+	loginAttempts.Delete(ip)
+}
+
+func getIP(r *http.Request) string {
+	if cf := r.Header.Get("Cf-Connecting-Ip"); cf != "" {
+		return cf
+	}
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		return xff
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
 func handleLogin(db *DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ip := getIP(r)
+		if !checkRateLimit(ip) {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "Too many attempts. Try again in 15 minutes."})
+			return
+		}
+
 		var req struct {
 			Username string `json:"username"`
 			Password string `json:"password"`
@@ -272,6 +333,8 @@ func handleLogin(db *DB) http.HandlerFunc {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid username or password"})
 			return
 		}
+
+		resetRateLimit(ip)
 
 		sessionID, err := db.CreateSession(user.ID)
 		if err != nil {
@@ -323,6 +386,29 @@ func handleListUsers(db *DB) http.HandlerFunc {
 			users = []User{}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"users": users})
+	}
+}
+
+func handleDeleteUser(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := r.PathValue("id")
+		var id int
+		if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user ID"})
+			return
+		}
+
+		user := UserFromContext(r.Context())
+		if user.ID == id {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cannot delete yourself"})
+			return
+		}
+
+		if err := db.DeleteUser(id); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete user"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 	}
 }
 

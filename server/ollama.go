@@ -158,9 +158,10 @@ type ChatResponse struct {
 }
 
 type ollamaChatRequest struct {
-	Model    string        `json:"model"`
-	Messages []ChatMessage `json:"messages"`
-	Stream   bool          `json:"stream"`
+	Model    string         `json:"model"`
+	Messages []ChatMessage  `json:"messages"`
+	Stream   bool           `json:"stream"`
+	Options  map[string]any `json:"options,omitempty"`
 }
 
 type ollamaChatResponse struct {
@@ -169,11 +170,12 @@ type ollamaChatResponse struct {
 }
 
 // Chat sends a non-streaming chat request to Ollama and returns the full response.
-func (c *OllamaClient) Chat(model string, messages []ChatMessage) (*ChatResponse, error) {
+func (c *OllamaClient) Chat(model string, messages []ChatMessage, options map[string]any) (*ChatResponse, error) {
 	reqBody := ollamaChatRequest{
 		Model:    model,
 		Messages: messages,
 		Stream:   false,
+		Options:  options,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -213,11 +215,12 @@ type StreamChunk struct {
 
 // ChatStream sends a streaming chat request. It calls onChunk for each token
 // as it arrives from Ollama. The final chunk has Done=true.
-func (c *OllamaClient) ChatStream(model string, messages []ChatMessage, onChunk func(StreamChunk) error) error {
+func (c *OllamaClient) ChatStream(model string, messages []ChatMessage, options map[string]any, onChunk func(StreamChunk) error) error {
 	reqBody := ollamaChatRequest{
 		Model:    model,
 		Messages: messages,
 		Stream:   true,
+		Options:  options,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)

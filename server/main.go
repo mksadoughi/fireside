@@ -75,6 +75,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/admin/invites/{id}", requireAdmin(db, handleDeleteInvite(db)))
 
 	mux.HandleFunc("GET /api/admin/users", requireAdmin(db, handleListUsers(db)))
+	mux.HandleFunc("DELETE /api/admin/users/{id}", requireAdmin(db, handleDeleteUser(db)))
 	mux.HandleFunc("PUT /api/admin/users/{id}/password", requireAdmin(db, handleAdminResetPassword(db)))
 
 	// Admin: API key management
@@ -442,7 +443,7 @@ func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 		// Add current message to history
 		messages = append(messages, ChatMessage{Role: "user", Content: req.Message})
 
-		resp, err := ollama.Chat(req.Model, messages)
+		resp, err := ollama.Chat(req.Model, messages, nil)
 		if err != nil {
 			log.Printf("Ollama error: %v", err)
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("inference failed: %v", err)})
@@ -500,7 +501,7 @@ func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc 
 		db.AddMessage(convo.ID, "user", req.Message, nil)
 
 		var fullResponse string
-		err = ollama.ChatStream(req.Model, messages, func(chunk StreamChunk) error {
+		err = ollama.ChatStream(req.Model, messages, nil, func(chunk StreamChunk) error {
 			fullResponse += chunk.Content
 			data, _ := json.Marshal(chunk)
 			fmt.Fprintf(w, "data: %s\n\n", data)
