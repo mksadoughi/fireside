@@ -155,13 +155,14 @@ Every host gets a permanent `name.fireside.run` URL — survives restarts, share
 
 The public face. How people find Fireside and understand what it does.
 
-- ❌ `fireside.run` static site:
-  - Landing page: private AI server, one-command install, API-first with Chat UI included
-  - Download page (auto-detect OS, links to GitHub Releases)
-  - Docs: Getting Started, API Guide, Security Model (honest about the two tiers — critical for trust)
-  - Privacy page: what Fireside can and cannot see, exact encryption guarantees
-- ❌ README: complete, with install instructions, architecture overview, and API quickstart
-- ❌ Analytics: privacy-respecting (no Google Analytics)
+- ❌ `fireside.run` marketing site:
+  - **Tech Stack:** Next.js (Static Export), TailwindCSS, hosted on Cloudflare Pages ($0 cost, unlimited traffic, premium React feel).
+  - Landing page: private AI server, one-command install, API-first with Chat UI included.
+  - Download page: auto-detect OS, links to GitHub Releases.
+  - Docs: Getting Started, API Guide, Security Model (honest about the two tiers — critical for trust).
+  - Privacy page: what Fireside can and cannot see, exact encryption guarantees.
+- ❌ README: complete, with install instructions, architecture overview, and API quickstart.
+- ❌ Analytics: privacy-respecting (no Google Analytics).
 
 **Milestone:** Someone lands on the site, understands the product in 30 seconds, downloads it, and can start using the API within 5 minutes.
 
