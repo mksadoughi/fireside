@@ -244,29 +244,11 @@ No separate "Open Chat" button in the sidebar. The host accesses the chat UI via
 
 #### Tab: Overview
 
-Serves two purposes depending on server maturity:
-
-**For new servers (first few sessions):**
-
-- "Getting Started" checklist, shown prominently:
-  - [done] Server created
-  - [action needed] Download your first AI model -> links to Models tab
-  - [pending] Send your first message -> links to Chat
-  - [pending] Connect a tool via API -> links to API tab
-  - [pending] Invite a friend (or skip -- you can use it solo!) -> links to Chat tab
-- Each item has a brief description
-- Checklist auto-updates as tasks complete
-- Disappears once all items are done
-
-**For established servers:**
-
-- Status card: "Server Online"
 - Stats cards:
   - Users: total registered (e.g. "5 users")
   - Messages: count today (e.g. "47 messages today")
   - Models: count available (e.g. "2 models")
   - Active now: current sessions
-- Quick action buttons: "Create Invite", "Create API Key"
 
 ---
 
@@ -287,9 +269,6 @@ When a host adds a new model, clients automatically see it in their model select
 - Text input: "Enter model name (e.g. llama3.2:3b)"
 - "Download" button
 - When downloading: progress bar with bytes transferred / total, estimated time
-- Popular models suggestion cards (3-5 hardcoded):
-  - Name, one-line description, size, RAM needed
-  - One-click "Download" button per card
 
 **Ollama not available:**
 
@@ -405,11 +384,6 @@ API keys are a core feature, not just an admin utility. They let anyone the host
 
 - Fire logo (large)
 - "How can I help you?"
-- 3 suggested prompt buttons:
-  - "Explain quantum computing simply"
-  - "Write a poem about the ocean"
-  - "Help me draft an email"
-- Clicking a suggestion fills it into the input and sends it
 
 **Main area -- Active conversation:**
 
@@ -449,18 +423,12 @@ API keys are a core feature, not just an admin utility. They let anyone the host
 5. Opens browser to localhost:7654
 6. Setup Step 1: Welcome screen. Clicks "Get Started"
 7. Setup Step 2: enters server name, username, password
-8. Clicks "Create Server" -> auto-login -> #/dashboard
-9. Dashboard shows Getting Started checklist:
-   - [done] Server created
-   - [action needed] Download your first AI model
-   - [pending] Send your first message
-   - [pending] Connect a tool via API
-10. Clicks model task -> Models tab (under Server)
-11. Picks a model, clicks Download. Progress bar. (Can browse other tabs while waiting.)
-12. Model ready. Clicks Chat tab -> "Try it yourself" link
-13. Chats with AI from their desktop.
-14. Later, opens the same URL on their phone -> login -> same conversations, picks up where they left off.
-15. Creates an API key, configures Cursor to use it. Now has AI in their IDE too.
+8. Clicks "Create Server" -> auto-login -> #/dashboard (Overview shows stats)
+9. Clicks Models tab (under Server), picks a model, clicks Download. Progress bar.
+10. Model ready. Clicks Chat tab -> "Try it yourself" link
+11. Chats with AI from their desktop.
+12. Later, opens the same URL on their phone -> login -> same conversations, picks up where they left off.
+13. Creates an API key, configures Cursor to use it. Now has AI in their IDE too.
 ```
 
 ### Flow B: Host Invites a Friend
@@ -484,9 +452,8 @@ API keys are a core feature, not just an admin utility. They let anyone the host
 5. Enters username: "sarah", password: "mypass123"
 6. Clicks "Join Kazem's AI"
 7. Auto-login -> #/chat
-8. Sees welcome screen with suggested prompts
-9. Taps one, sees streaming AI response
-10. Done. Next time: visits same URL, logs in normally. Works from any device.
+8. Sees welcome screen, types a message, sees streaming AI response
+9. Done. Next time: visits same URL, logs in normally. Works from any device.
 ```
 
 ### Flow D: Host Day-to-Day

@@ -1,243 +1,242 @@
 # Fireside — Tech Plan
 
-This document covers the technology choices and phased build plan for the MLP. For what the product IS and why it exists, see [product-spec.md](./product-spec.md). For system architecture, see [architecture.md](./architecture.md). For implementation details, see [detailed-design.md](./detailed-design.md). For UI/UX design, see [ux-spec.md](./ux-spec.md).
-
-**Important:** Phase numbers are for incremental development only. ALL phases must be complete before MLP ships. We are not launching a half-made product.
+For what the product IS and why it exists, see [product-spec.md](./product-spec.md). For system architecture, see [architecture.md](./architecture.md). For implementation details, see [detailed-design.md](./detailed-design.md). For UI/UX design, see [ux-spec.md](./ux-spec.md).
 
 ---
 
 ## Tech Stack
 
-**Server: Go**
-- Compiles to a single binary. No runtime dependencies.
-- Good networking and concurrency.
-- Cross-platform (Linux, macOS, Windows).
-- Wraps Ollama's API, adds user auth and invite system, serves the chat UI, manages Cloudflare Tunnel.
+**Server: Go** — single binary, no runtime dependencies, cross-platform. Handles auth, multi-user, chat history, Ollama proxy, networking (V1: Cloudflare Tunnel, V2: Fireside Relay).
 
-**Chat UI: Custom (HTML/CSS/JS)**
-- Lightweight custom chat interface — no framework, no React, no build step.
-- Clean HTML + CSS + vanilla JavaScript. Chat bubbles, text input, streaming text, conversation sidebar, dark mode.
-- Embedded in the Go binary as static files via Go's `embed` package.
-- The UI needs to look good. This is where the "hero factor" lives. If it looks like a hobby project, the Host won't share it.
+**Chat UI: Custom HTML/CSS/JS** — embedded in the binary via `embed`. No framework, no build step. The reference client: proves the encrypted API works and is what non-technical users interact with. If it looks like a hobby project, the Host won't share it.
 
-**Storage: SQLite**
-- Zero config, embedded in the Go binary.
-- Stores: user accounts, invite links, chat history, API keys, server config.
+**Storage: SQLite** — zero config, embedded. Users, sessions, invites, chat history, API keys, server config, per-user encryption keys.
 
-**Model runtime: Ollama**
-- Handles model downloads, GPU detection, quantization, inference.
-- The server talks to Ollama's local API.
-- Install script installs Ollama if not already present.
+**Model runtime: Ollama** — handles model downloads, GPU detection, quantization, inference. Server talks to Ollama's local API.
 
-**Networking: Cloudflare Tunnel (cloudflared)**
-- Free, reliable.
-- Install script installs cloudflared and configures the tunnel automatically.
+**Encryption: AES-256-GCM (Web Crypto API)** — built into all modern browsers, hardware-accelerated. Per-user 256-bit keys generated at invite creation. Browser encrypts before the request leaves the device; server decrypts to process, re-encrypts to store.
 
-**Encryption: Web Crypto API + AES-GCM**
-- Built into all modern browsers, hardware-accelerated.
-- Per-user key exchange via invite link URL fragment.
-- Each invite generates a unique 256-bit key; per-user isolation.
-- Encryption ships from day one — it IS the product's core promise.
+**Networking (V1): Cloudflare Tunnel** — free, zero ops, instant public URL. V1 default.
 
-The entire product is: **one Go binary + Ollama + cloudflared**. Three dependencies. One install command. No Node.js, no npm, no build pipeline for the frontend.
+**Networking (V2): Fireside Relay** — our operated service. Persistent subdomain, true end-to-end. The commercial tier. Replaces Cloudflare via a swappable interface in the binary (see V2 section).
+
+The entire product is: **one Go binary + Ollama + cloudflared (V1)**. One install command. No Node.js, no npm, no build pipeline.
 
 ---
 
-## Build Plan
+## Security Model
 
-Legend: ✅ done | 🔧 partially done | ❌ not started | 📝 needs update per recent decisions
+Understanding the exact guarantees avoids overstating or understating the product's privacy promise.
 
----
+**What Fireside protects against:**
+- Cloudflare (V1) and the Fireside relay (V2) seeing message content
+- Messages being readable if the database is compromised (encrypted at rest)
+- Per-user isolation — one user's key cannot decrypt another's messages
 
-### Phase 0: Foundation
+**What Fireside does not protect against:**
+- The Host reading messages — the server decrypts to process them and holds the encryption keys. For family/friends use this is fine. Do not imply otherwise.
+- The V1 API (OpenAI-compatible `/v1/` endpoints) is HTTPS-only. Cloudflare terminates TLS and can read plaintext API requests. This is documented and intentional — encrypting the `content` field of OpenAI JSON breaks every developer tool. V2 relay solves this without any client changes.
+- Metadata: connection timing and data volumes are visible to relay operators regardless of content encryption.
 
-Before writing any product code. Get the project scaffolding and design in place.
+**Key tradeoff documented:** Server-side key storage (required to reconstruct conversation history for Ollama) means the encryption key passes through Cloudflare on login. The "Cloudflare sees gibberish" guarantee applies to chat payloads, not the login exchange. Fully client-side-only keys would require clients to re-send full history on every message — impractical.
 
-**Deliverables:**
-- ✅ Repository setup (monorepo: `/server`, `/ui`, `/docs`)
-- ✅ System architecture document ([architecture.md](./architecture.md))
-- ✅ SQLite schema design ([detailed-design.md](./detailed-design.md))
-- ✅ Encryption protocol design ([detailed-design.md](./detailed-design.md))
-- ✅ Auth flow design (invite link → signup → login → session lifecycle)
-- ✅ UI decision: Custom vanilla HTML/CSS/JS
-- ✅ UX specification ([ux-spec.md](./ux-spec.md))
-- ✅ Development environment: Go toolchain, Ollama running locally
+**Two-tier privacy (V1):**
+| Interface | Who can read content |
+|-----------|---------------------|
+| Chat UI | Nobody except Host's server (AES-256-GCM through Cloudflare) |
+| OpenAI API (`/v1/`) | Cloudflare + Host's server (HTTPS only) |
 
-**Status: COMPLETE**
-
----
-
-### Phase 1: Core Server
-
-The Go binary that wraps Ollama and manages everything.
-
-**Deliverables:**
-- ✅ Go HTTP server with routing (`main.go`)
-- ✅ Ollama integration:
-  - ✅ List models (`GET /api/tags` proxy)
-  - ✅ Chat — non-streaming (`ollama.Chat()`)
-  - ✅ Chat — streaming SSE (`ollama.ChatStream()`)
-  - ✅ Pull/download model with streaming progress (`PullModelStream`)
-  - ✅ Delete model (`DeleteModel`)
-  - ✅ Running models (`ListRunningModels`)
-- ✅ SQLite database — schema, migrations, CRUD (`database.go`)
-- ✅ User auth — bcrypt, sessions, cookies, middleware (`auth.go`)
-- ✅ Invite system — create, validate, consume, list, delete (`invites.go`)
-- ✅ User registration via invite token (`handleRegister`)
-- ✅ Admin endpoints:
-  - ✅ Manage invites (create, list, delete)
-  - ✅ List users
-  - ✅ Delete/disable users
-  - ✅ Manage models (pull, delete, list running via API)
-  - ✅ Server status endpoint (users, active sessions, model count, message count)
-  - ✅ Server settings (get/update server name, tunnel URL)
-  - ✅ Change password endpoint (admin only)
-  - ✅ Client self-service password change (`PUT /api/auth/password` — any authenticated user)
-  - ✅ Admin reset client password (`PUT /api/admin/users/{id}/password` — admin sets new password)
-  - ✅ Reset server endpoint (wipe database, return to setup — **localhost only**, detect via `Cf-Connecting-IP` header)
-- ✅ API key system — create, validate (SHA-256), revoke, list (`apikeys.go`)
-  - ✅ Rate limiting (DB field exists, not enforced)
-- ✅ OpenAI-compatible API (`openai.go`):
-  - ✅ `POST /v1/chat/completions` (streaming + non-streaming)
-  - ✅ `GET /v1/models`
-- ✅ Login rate limiting (brute force protection — critical for auth-exposed dashboard)
-- ✅ Basic tests
-
-**Status: COMPLETE**
-
-**Milestone:** You can `curl` the server, authenticate with an API key, and get a chat response from Ollama. Admin can create invite links, manage users, manage models, and configure settings via `curl`.
+**Unified privacy (V2):**
+| Interface | Who can read content |
+|-----------|---------------------|
+| Chat UI | Host's server only |
+| OpenAI API (`/v1/`) | Host's server only |
+| Open WebUI, Cursor, LangChain | Host's server only |
 
 ---
 
-### Phase 2: Chat UI & Dashboard
+## Open Source & Business Model
 
-The thing Clients actually see and use. This is the product.
+**License: AGPL-3.0** — everything open source: server, Chat UI, relay client code, relay server code. For a privacy product, closed source is a contradiction. The community cannot trust what it cannot audit. AGPL specifically: any fork deployed as a service must open source modifications — closes the SaaS loophole.
 
-**Chat UI deliverables:**
-- ✅ Login page:
-  - ✅ Login form with username/password
-  - ✅ Server name displayed as heading
-  - ✅ "Need access? Ask the server admin for an invite link." note
-- ✅ Setup page (first-run):
-  - ✅ Server name + username + password form
-  - ✅ Two-step wizard (Welcome → Create Server)
-  - ✅ Confirm password field
-- ✅ Invite registration page (`#/invite/:token`) — validate token, register, auto-login, confirm password
-- ✅ Chat interface — message input, streaming responses (SSE), message display
-- ✅ Conversation sidebar — list, new chat, delete, active highlight
-- ✅ Model picker dropdown
-- ✅ Mobile responsive (CSS media queries, sidebar toggle)
-- ✅ Dark mode (default theme)
-- ✅ Auto-resize textarea, Enter to send, Shift+Enter for newline
-- ✅ Hash-based SPA routing (`#/setup`, `#/login`, `#/chat`, `#/dashboard`, `#/invite/:token`)
-- ✅ Markdown rendering (bold, italic, headers, lists, links)
-- ✅ Code blocks with syntax highlighting + copy button
-- ✅ Trust indicator footer — shows "Private AI · {server name}" dynamically
-- ✅ Client password change (accessible from chat sidebar)
-- ✅ Offline detection banner with auto-reconnect (10s heartbeat)
-- ✅ Embed UI in Go binary via `embed` package
+**The moat is not the code.** It is: community trust, the `fireside.run` brand, operated relay infrastructure, and development velocity. Anyone can read the code. Very few can run a reliable relay service.
 
-**Dashboard deliverables (admin only):**
-- ✅ Sidebar navigation layout with section headers (Server / Interfaces)
-- ✅ Overview tab — stats cards (users, messages, models, sessions)
-- ✅ Models tab — list installed, download new with progress bar, delete
-- ✅ Settings tab — edit server name, tunnel URL, change password
-  - ✅ Reset Server button (localhost only — hidden when accessed remotely, requires password re-entry + confirmation)
-- ✅ Chat tab (merged Users + Invites) — users list, single-use invite creation, pending invites
-  - ✅ Subtle "Try it yourself →" link to chat UI
-  - ✅ Single-use invites (one invite = one person)
-  - ✅ Delete/revoke user button
-  - ✅ Admin reset user password button + modal
-- ✅ API tab — create keys, list active keys, revoke
+**Business model: Open core + managed service**
 
-**Status: COMPLETE**
+| | Free (self-hosted) | Paid — Fireside Connect (~$8-10/month) |
+|--|--|--|
+| Full Fireside server | ✅ | ✅ |
+| Chat UI with AES-256-GCM encryption | ✅ | ✅ |
+| OpenAI-compatible API | ✅ | ✅ |
+| Multi-user invite system | ✅ | ✅ |
+| Cloudflare Tunnel (random URL) | ✅ | ✅ |
+| **Fireside Relay** (`name.fireside.run`) | ❌ | ✅ |
+| **Persistent URL** (never changes on restart) | ❌ | ✅ |
+| **True end-to-end** (relay cannot read content) | ❌ | ✅ |
+| **API traffic fully private** | ❌ | ✅ |
+| Uptime SLA | ❌ | ✅ |
 
-**Milestone:** A Host can open `localhost:7654`, log in, manage their server from a sidebar dashboard (Server: Overview/Models/Settings, Interfaces: Chat/API), and chat. Clients can register via single-use invite link and chat. Works on desktop and mobile.
+We sell convenience and stronger guarantees — not safety. The free tier is genuinely private.
+
+**Revenue math:** 500 paying hosts × $9/month = $4,500/month. Relay infrastructure at this scale: ~$20-30/month. Unit economics are strong.
+
+**Known concern:** AGPL can be a blocker for enterprise adopters with blanket no-AGPL policies. If an enterprise tier becomes relevant, offer a commercial license alongside AGPL. Not a concern for the launch audience (privacy community, self-hosters, developers).
 
 ---
 
-### Phase 3: Encryption
+## V1: MLP
 
-Application-layer encryption so Cloudflare (and later the relay) can't read message content. This is the product's core privacy promise — it ships before launch, not as a future feature.
+**Phases 0–4 are complete:** foundation, core server (auth, Ollama, API, admin), Chat UI and dashboard, AES-256-GCM encryption, Cloudflare Tunnel automation, install script, cross-platform build. The product works end-to-end and is publicly reachable.
 
-**Deliverables:**
-- ❌ Browser-side: encrypt outgoing messages with Web Crypto API (AES-256-GCM)
-- ❌ Browser-side: decrypt incoming streaming responses
-- ❌ Server-side: decrypt incoming messages (look up user's per-user key)
-- ❌ Server-side: encrypt outgoing responses before sending
-- ❌ Per-user key exchange via invite link URL fragment (`#key=...`)
-- ❌ Key storage in browser (IndexedDB)
-- ✅ Schema pre-wired (encryption_key columns in invite_links and users tables)
-- ✅ Encryption keys generated during invite creation and copied to users at signup
-- ❌ Verify: DevTools → Network → all payloads are encrypted blobs
-- ❌ Published encryption protocol spec
-
-**NOT in MLP (deferred):**
-- Python/Node SDK with encryption (MLP supports direct API mode only — HTTPS, no app-layer encryption for API calls)
-
-**Milestone:** All chat traffic through Cloudflare is encrypted. Cloudflare sees gibberish. Each user has their own key. Verifiable in browser DevTools.
-
----
+**What remains:**
 
 ### Phase 4: Networking & Install
 
-Make it reachable from the internet and installable with one command.
+Make it publicly reachable and installable with one command. This phase establishes the `TunnelProvider` interface — the key architectural decision that makes V2 a drop-in replacement for Cloudflare without touching any other code.
 
-**Deliverables:**
-- ❌ Cloudflare Tunnel automation:
-  - **MLP default:** `cloudflared tunnel --url http://localhost:7654` (trycloudflare — instant, random URL)
-  - **Post-MLP upgrade:** named tunnel with persistent subdomain
-- ❌ Install script (`curl -fsSL https://getfireside.com/install | sh`):
+- ✅ `TunnelProvider` interface in the binary — abstracts the networking layer. V1 implements `CloudflareTunnelProvider`. V2 implements `FiresideRelayProvider`. Auth, chat, encryption, and API are networking-agnostic.
+- ✅ Cloudflare Tunnel automation:
+  - Spawn `cloudflared tunnel --url http://localhost:7654` on startup
+  - Capture public URL from cloudflared output, store in settings, surface in dashboard
+- ✅ Install script (`curl -fsSL https://fireside.run/install | sh`):
   - Detect OS (Linux, macOS)
   - Install Ollama if not present
   - Install cloudflared if not present
-  - Download pre-compiled Go binary
+  - Download pre-compiled Fireside binary
   - Register as system service (auto-start on boot)
-  - Start server, open browser
-- ❌ Cross-compile Go binary for all platforms (macOS ARM, macOS Intel, Linux x86, Linux ARM)
-- ✅ Embed UI assets into Go binary via `embed` package
+  - Start server, open browser to setup page
+- ✅ Cross-compile for all platforms: macOS ARM, macOS Intel, Linux x86, Linux ARM
 
-**Milestone:** A Host can run one command on a fresh machine and have a working, internet-accessible AI server within 10 minutes.
+**Platform note:** V1 targets macOS and Linux only. Windows support (binary works, install script doesn't) is a V1.x item — revisit when there's user demand.
+
+**Milestone:** A Host runs one command on a fresh machine and has a working, internet-accessible AI server within 10 minutes.
+
+---
+
+### Phase 4b: Permanent `name.fireside.run` Subdomains
+
+Every host gets a permanent `name.fireside.run` URL — survives restarts, shareable forever. Built on Cloudflare Named Tunnels (free infrastructure) with a small registration service we operate. The URL carries over unchanged when a host upgrades to V2.
+
+**How it works:** Host picks a name during first-run setup → our registration Worker claims a Cloudflare Named Tunnel on our account and creates the DNS CNAME → host's local `cloudflared` runs with those credentials → `name.fireside.run` is live and permanent.
+
+**Registration Worker** (`workers/` — Cloudflare Worker + KV, deployed to `api.fireside.run`):
+- ✅ `POST /check` — check name availability (KV lookup), return suggestions if taken
+- ✅ `POST /claim` — validate name, create Named Tunnel via Cloudflare API, write KV entry, add DNS CNAME, return tunnel credentials
+- ✅ `POST /heartbeat` — extend name TTL (Fireside binary calls this daily)
+- ✅ `POST /release` — delete tunnel + DNS CNAME + KV entry (called on clean uninstall)
+
+**Security mitigations:**
+- ✅ Rate limiting: max 3 claim attempts per IP per hour (Workers rate limiting API)
+- ✅ Reserved names blocklist: `admin`, `api`, `www`, `app`, `install`, `relay`, `connect`, `status`, `dashboard`, `fireside`, `mail`, `blog`, `docs`, `support`, `billing` (and others)
+- ✅ Scoped Cloudflare API token: only permissions to create/delete tunnels + manage DNS for `fireside.run` — not a root key, stored as encrypted Worker secret
+- ✅ Heartbeat + 30-day expiry: name released automatically if no heartbeat for 30 days — prevents squatting and frees abandoned names
+- ✅ Atomic cleanup: DNS CNAME deleted in the same operation as tunnel deletion — prevents dangling CNAME / subdomain takeover
+
+**Fireside binary changes:**
+- ✅ `NamedTunnelProvider` — new `TunnelProvider` implementation:
+  - On first run: name picker flow (suggest name, real-time availability check, handle collisions with alternatives)
+  - Stores tunnel credentials in DB after successful claim
+  - Runs `cloudflared tunnel run <name>` with credentials — URL is `name.fireside.run` immediately and permanently
+  - Heartbeat goroutine: pings `api.fireside.run/heartbeat` every 24 hours
+- ✅ First-run setup wizard: add name picker step (host chooses their subdomain before server goes public)
+- ✅ Dashboard: show permanent `name.fireside.run` URL — no "Connecting…" state, no URL changes on restart
+
+**One-time infrastructure setup** (do once, on `fireside.run` domain):
+- ✅ Add `fireside.run` to Cloudflare (DNS managed by Cloudflare — required for Named Tunnels to work)
+- ✅ Create scoped API token with tunnel + DNS permissions
+- ✅ Deploy registration Worker to `api.fireside.run`
+- ✅ Create KV namespace and bind to Worker
+
+**Milestone:** Host picks `alice.fireside.run` during setup. That URL never changes — not on restart, not ever. Clients bookmark it once and it always works.
 
 ---
 
 ### Phase 5: Website & Documentation
 
-The public face. How people find the product and learn to use it.
+The public face. How people find Fireside and understand what it does.
 
-**Deliverables:**
-- ❌ `getfireside.com` static site:
-  - Landing page (hero, value props, API code snippet, download CTA)
-  - Download page (auto-detect OS, GitHub Releases links)
-  - Docs: Getting Started, API Guide, API Reference, FAQ
-  - Privacy page (encryption protocol spec)
-- ❌ Cloudflare Analytics or similar (privacy-respecting)
-- 🔧 README — exists but basic
+- ❌ `fireside.run` static site:
+  - Landing page: private AI server, one-command install, API-first with Chat UI included
+  - Download page (auto-detect OS, links to GitHub Releases)
+  - Docs: Getting Started, API Guide, Security Model (honest about the two tiers — critical for trust)
+  - Privacy page: what Fireside can and cannot see, exact encryption guarantees
+- ❌ README: complete, with install instructions, architecture overview, and API quickstart
+- ❌ Analytics: privacy-respecting (no Google Analytics)
 
-**Milestone:** Someone can find the project, understand what it does, download it, and read the API docs.
+**Milestone:** Someone lands on the site, understands the product in 30 seconds, downloads it, and can start using the API within 5 minutes.
 
 ---
 
 ### Phase 6: Testing & Launch
 
-Real users, real feedback, real bugs.
+Real users, real hardware, real bugs.
 
-**Deliverables:**
-- ❌ Test with real Hosts on diverse hardware
-- ❌ Test with their real families/friends as Clients
-- ❌ Cross-platform testing (Linux, macOS)
-- ❌ Mobile browser testing (iOS Safari, Android Chrome)
-- ❌ Edge case testing (server restart, network loss, concurrent users, model switching)
+- ❌ Test with real Hosts on diverse hardware (laptop GPU, no GPU, desktop)
+- ❌ End-to-end testing with real Clients (family/friends)
+- ❌ Cross-platform: Linux, macOS, iOS Safari, Android Chrome
+- ❌ Edge cases: server restart, network loss, concurrent users, model switching mid-conversation
 - ❌ Security audit of encryption implementation
-- ❌ Post to: r/selfhosted, r/LocalLLaMA, Hacker News
+- ❌ Community launch: r/selfhosted, r/LocalLLaMA, Hacker News
+
+**V1 Milestone:** Anyone can install Fireside in under 10 minutes, share it privately with family and friends via invite links, and have encrypted conversations. Developers can connect any OpenAI-compatible tool to the API. The product is complete and honest about what it does.
 
 ---
 
-### Phase 7: Post-MLP (V2 Ideas)
-Features that elevate the product but are not required for the initial launch.
+## V2: Fireside Connect
 
-**Deliverables:**
-- ❌ Hardware detection (RAM, CPU, GPU) shown in Admin Dashboard
-- ❌ Model size warnings (e.g. warning admin when downloading a 32B model on a 16GB RAM machine)
-- ❌ Concurrency limits / Queueing (prevent 5 users from crashing the server simultaneously)
+V2 is the commercial layer. It ships after V1 has demonstrated product-market fit. Architecturally it slots in through the `TunnelProvider` interface introduced in Phase 4 — no refactoring needed in auth, chat, encryption, or API.
 
+**Core change:** The Fireside relay passes raw TCP without terminating TLS. TLS terminates at the host's Fireside server. The relay sees connection metadata (who connects, when, how much data) but never content. This makes the OpenAI API as private as the Chat UI, with zero changes to developer tools.
+
+**Name continuity:** The `name.fireside.run` subdomain claimed in Phase 4b carries over to V2 unchanged. The registration Worker swaps the DNS target from a Cloudflare Named Tunnel CNAME to our relay IP — the host's URL never changes. Clients notice nothing.
+
+### What needs to be built
+
+**Relay Server** (new service, runs on our infrastructure):
+- SNI-based TCP router: reads TLS ClientHello to extract hostname, routes to correct Fireside instance without decrypting
+- Registration API: Fireside instances connect, authenticate, and claim a subdomain
+- Tunnel multiplexer: maintains persistent outbound connections from Fireside instances (behind NAT), multiplexes client connections through them (yamux)
+- DNS: wildcard `*.fireside.run → relay IP` (one-time setup)
+- Infrastructure: single small VPS (~$10-15/month at launch scale, grows with revenue)
+
+**Relay Client** (added to Fireside binary, implements `TunnelProvider`):
+- On startup: connects to relay, authenticates, registers subdomain
+- Maintains persistent multiplexed tunnel, handles reconnection
+- ACME cert management: obtains Let's Encrypt cert for `name.fireside.run` via HTTP-01 challenge through tunnel, auto-renews
+- TLS serving: Fireside switches from plain HTTP to serving TLS directly (~50 line change)
+- ~400 lines Go, completely additive to existing code
+
+### What V2 unlocks
+
+- **Persistent URL:** `yourname.fireside.run` — never changes on restart, shareable link
+- **True end-to-end:** relay sees bytes, not content
+- **API fully private:** Cursor points at `https://yourname.fireside.run/v1`, fully private with no extra setup
+- **Open WebUI fully private:** change base URL, done
+- **Commercial tier:** reason to pay $8-10/month
+
+**V2 Milestone:** Hosts have a persistent subdomain. All traffic — Chat UI and OpenAI API — is private from intermediaries. Clients point any tool at `https://yourname.fireside.run/v1` and it works. Fireside generates recurring revenue.
+
+---
+
+## Server Extensions (V1.x)
+
+These are independent server improvements — no relay dependency, can ship any time after V1. Implementation approach decided when each is prioritised.
+
+**Capabilities:**
+- Image generation via Ollama-supported diffusion models (FLUX.1, Stable Diffusion). Chat UI inline display + `/v1/images/generations` OpenAI-compatible endpoint.
+- RAG: document ingestion → chunking → embedded vector store (sqlite-vec, zero new dependencies) → automatic context injection. `/v1/embeddings` API for programmatic access.
+- Database connections: read-only SQL queries via LLM-generated SQL against a host-provided database. Significant security scope — strict read-only sandboxing required.
+
+**Stability & Operations:**
+- Hardware detection (RAM, CPU, GPU shown in dashboard; model size warnings before downloading large models)
+- Concurrency limits / request queuing — prevent multiple simultaneous heavy users from crashing the server
+
+---
+
+## Relay Extensions (V2+)
+
+These require the V2 relay to exist first.
+
+- Multiple relay regions — redundancy and lower latency for global users
+- Custom domain support — `ai.yourcompany.com` pointing to Fireside relay
+- Enterprise tier — team management, audit logs, SSO, commercial license alongside AGPL. Pricing: $50-100/month for multi-host organisations.
