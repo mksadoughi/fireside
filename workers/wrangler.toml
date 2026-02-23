@@ -1,0 +1,20 @@
+name = "fireside-registration"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[[routes]]
+pattern = "api.fireside.run"
+custom_domain = true
+
+[[kv_namespaces]]
+binding = "NAMES"
+id = "44eeddd418334ea98a195b334e8617ea"
+
+[vars]
+# Non-secret config
+HEARTBEAT_TTL_DAYS = "30"
+
+# Secrets (set via: wrangler secret put CF_API_TOKEN, etc.)
+# CF_API_TOKEN      - scoped Cloudflare token (tunnel create/delete + DNS edit for fireside.run)
+# CF_ACCOUNT_ID     - your Cloudflare account ID
+# CF_ZONE_ID        - zone ID for fireside.run
