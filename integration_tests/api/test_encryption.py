@@ -7,22 +7,24 @@ import json
 BASE_URL = "http://localhost:7654"
 
 @pytest.fixture(scope="module")
-def setup_server():
+def setup_server(server):
     """Ensure the server is set up."""
+    base_url = server["base_url"]
     # Try to set up the server (will return 409 if already set up)
-    requests.post(f"{BASE_URL}/api/setup", json={
-        "username": "admin",
+    requests.post(f"{base_url}/api/setup", json={
+        "username": "testadmin",
         "password": "password",
         "server_name": "Test Server"
     })
     return True
 
-def test_unencrypted_chat_backward_compatibility(setup_server):
+def test_unencrypted_chat_backward_compatibility(server, setup_server):
     """Test that a plain unencrypted HTTP POST to the chat API defaults to plaintext in DB"""
+    base_url = server["base_url"]
     
     # Login as admin
-    login_res = requests.post(f"{BASE_URL}/api/auth/login", json={
-        "username": "admin",
+    login_res = requests.post(f"{base_url}/api/auth/login", json={
+        "username": "testadmin",
         "password": "password"
     })
     assert login_res.status_code == 200
@@ -38,7 +40,7 @@ def test_unencrypted_chat_backward_compatibility(setup_server):
     # This might return 502 if Ollama isn't running the model, which is fine
     # What matters is that the backend accepted our HTTP structure
     chat_res = requests.post(
-        f"{BASE_URL}/api/chat",
+        f"{base_url}/api/chat",
         json=chat_payload,
         cookies=cookies
     )
@@ -46,9 +48,9 @@ def test_unencrypted_chat_backward_compatibility(setup_server):
     # 502 Bad Gateway means Ollama failed, but the auth and payload were accepted.
     assert chat_res.status_code in [200, 502], f"Unexpected status {chat_res.status_code}"
 
-def test_database_encryption_at_rest(setup_server):
+def test_database_encryption_at_rest(server, setup_server):
     """Verify any encrypted messages in SQLite are properly structured with nonces"""
-    db_path = os.path.expanduser("~/.fireside/data.db")
+    db_path = server["db_path"]
     if not os.path.exists(db_path):
         pytest.skip("Database does not exist yet")
         

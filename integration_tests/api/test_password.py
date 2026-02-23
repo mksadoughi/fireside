@@ -4,27 +4,29 @@ import pytest
 BASE_URL = "http://localhost:7654"
 
 @pytest.fixture(scope="module")
-def setup_server():
+def setup_server(server):
     """Ensure the server is set up."""
+    base_url = server["base_url"]
     # Try to set up the server (will return 409 if already set up)
-    requests.post(f"{BASE_URL}/api/setup", json={
+    requests.post(f"{base_url}/api/setup", json={
         "server_name": "Test Server",
-        "username": "admin",
+        "username": "testadmin",
         "password": "password"
     })
 
-def test_client_password_change(setup_server):
+def test_client_password_change(server, setup_server):
     """Test creating a user, logging in, changing their password, and logging in with the new password"""
+    base_url = server["base_url"]
     
     # 1. Admin logs in to generate an invite
-    admin_res = requests.post(f"{BASE_URL}/api/auth/login", json={
-        "username": "admin",
+    admin_res = requests.post(f"{base_url}/api/auth/login", json={
+        "username": "testadmin",
         "password": "password"
     })
     admin_cookies = admin_res.cookies
     
     # 2. Create Invite
-    invite_res = requests.post(f"{BASE_URL}/api/admin/invites", json={}, cookies=admin_cookies)
+    invite_res = requests.post(f"{base_url}/api/admin/invites", json={}, cookies=admin_cookies)
     token = invite_res.json().get('invite', {}).get('token')
     
     # 3. Register New User
@@ -32,14 +34,14 @@ def test_client_password_change(setup_server):
     init_pw = "initial_password"
     new_pw = "updated_password"
     
-    reg_res = requests.post(f"{BASE_URL}/api/auth/register", json={
+    reg_res = requests.post(f"{base_url}/api/auth/register", json={
         "token": token,
         "username": username,
         "password": init_pw
     })
     
     # 4. User logs in with initial password
-    login_res = requests.post(f"{BASE_URL}/api/auth/login", json={
+    login_res = requests.post(f"{base_url}/api/auth/login", json={
         "username": username,
         "password": init_pw
     })
@@ -47,14 +49,14 @@ def test_client_password_change(setup_server):
     user_cookies = login_res.cookies
     
     # 5. User changes their own password
-    pw_res = requests.put(f"{BASE_URL}/api/auth/password", json={
+    pw_res = requests.put(f"{base_url}/api/auth/password", json={
         "current_password": "wrong_password",
         "new_password": new_pw
     }, cookies=user_cookies)
     # This should fail because current password is wrong
     assert pw_res.status_code == 401
     
-    pw_res2 = requests.put(f"{BASE_URL}/api/auth/password", json={
+    pw_res2 = requests.put(f"{base_url}/api/auth/password", json={
         "current_password": init_pw,
         "new_password": new_pw
     }, cookies=user_cookies)
@@ -63,14 +65,14 @@ def test_client_password_change(setup_server):
     
     # 6. User logs out (just clear cookies)
     # 7. Try to log in with OLD password (should fail)
-    fail_login = requests.post(f"{BASE_URL}/api/auth/login", json={
+    fail_login = requests.post(f"{base_url}/api/auth/login", json={
         "username": username,
         "password": init_pw
     })
     assert fail_login.status_code == 401
     
     # 8. Try to log in with NEW password (should succeed)
-    success_login = requests.post(f"{BASE_URL}/api/auth/login", json={
+    success_login = requests.post(f"{base_url}/api/auth/login", json={
         "username": username,
         "password": new_pw
     })
@@ -78,4 +80,4 @@ def test_client_password_change(setup_server):
     
     # Cleanup: Admin revokes/deletes the user
     user_id = success_login.json().get('user').get('id')
-    requests.delete(f"{BASE_URL}/api/admin/users/{user_id}", cookies=admin_cookies)
+    requests.delete(f"{base_url}/api/admin/users/{user_id}", cookies=admin_cookies)
