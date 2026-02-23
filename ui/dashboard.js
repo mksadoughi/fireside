@@ -323,6 +323,12 @@ async function loadAPIKeys() {
         const tbody = document.getElementById('apikeys-tbody');
         const empty = document.getElementById('apikeys-empty');
 
+        // Dynamically hydrate the OpenAPI docs URL
+        const urlExample = document.getElementById('api-base-url-example');
+        if (urlExample) {
+            urlExample.textContent = `${window.location.origin}/v1`;
+        }
+
         if (keys.length === 0) {
             tbody.innerHTML = '';
             empty.classList.remove('hidden');
@@ -379,9 +385,122 @@ async function loadSettings() {
         const resp = await api.getSettings();
         const data = await resp.json();
         document.getElementById('settings-server-name').value = data.server_name || '';
-        document.getElementById('settings-tunnel-url').value = data.tunnel_url || '';
+
+        const namedSection  = document.getElementById('tunnel-named-section');
+        const autoSection   = document.getElementById('tunnel-auto-section');
+        const manualSection = document.getElementById('tunnel-manual-section');
+        namedSection.classList.add('hidden');
+        autoSection.classList.add('hidden');
+        manualSection.classList.add('hidden');
+
+        if (data.tunnel_subdomain) {
+            // Permanent named tunnel is active
+            namedSection.classList.remove('hidden');
+            document.getElementById('tunnel-named-url-display').value = 'https://' + data.tunnel_subdomain;
+        } else if (data.tunnel_mode === 'auto') {
+            // Quick tunnel — show temp URL + claim form
+            autoSection.classList.remove('hidden');
+            const url = data.tunnel_url || '';
+            document.getElementById('tunnel-url-display').value = url;
+            const badge = document.getElementById('tunnel-status-badge');
+            if (url) {
+                badge.textContent = 'Connected';
+                badge.className = 'model-badge model-badge-loaded';
+            } else {
+                badge.textContent = 'Connecting…';
+                badge.className = 'model-badge';
+            }
+        } else {
+            manualSection.classList.remove('hidden');
+            document.getElementById('settings-tunnel-url').value = data.tunnel_url || '';
+        }
     } catch { }
 }
+
+document.getElementById('copy-named-url-btn').addEventListener('click', () => {
+    const url = document.getElementById('tunnel-named-url-display').value;
+    navigator.clipboard.writeText(url);
+    const btn = document.getElementById('copy-named-url-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+});
+
+document.getElementById('copy-tunnel-url-btn').addEventListener('click', () => {
+    const url = document.getElementById('tunnel-url-display').value;
+    navigator.clipboard.writeText(url);
+    const btn = document.getElementById('copy-tunnel-url-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+});
+
+document.getElementById('claim-tunnel-btn').addEventListener('click', async () => {
+    const nameInput = document.getElementById('tunnel-name-input');
+    const statusEl  = document.getElementById('tunnel-name-status');
+    const name = nameInput.value.trim().toLowerCase();
+
+    if (!name) { statusEl.textContent = 'Enter a name first.'; statusEl.style.color = 'var(--danger)'; return; }
+
+    const btn = document.getElementById('claim-tunnel-btn');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    statusEl.textContent = '';
+
+    try {
+        // Check availability first
+        const checkResp = await fetch('/api/admin/tunnel/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+            credentials: 'include',
+        });
+        if (!checkResp.ok) {
+            statusEl.textContent = 'Registration service unavailable. Try again later.';
+            statusEl.style.color = 'var(--danger)';
+            btn.disabled = false;
+            btn.textContent = 'Claim';
+            return;
+        }
+        const checkData = await checkResp.json();
+
+        if (!checkData.available) {
+            let msg = `"${name}" is already taken.`;
+            if (checkData.suggestions?.length) {
+                msg += ` Try: ${checkData.suggestions.join(', ')}`;
+            }
+            statusEl.textContent = msg;
+            statusEl.style.color = 'var(--danger)';
+            btn.disabled = false;
+            btn.textContent = 'Claim';
+            return;
+        }
+
+        // Available — claim it
+        btn.textContent = 'Claiming…';
+        const claimResp = await fetch('/api/admin/tunnel/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+            credentials: 'include',
+        });
+        const claimData = await claimResp.json();
+
+        if (claimResp.ok) {
+            statusEl.style.color = 'var(--success, #22c55e)';
+            statusEl.textContent = `✓ Claimed! ${claimData.subdomain} is now active.`;
+            // Reload settings after a moment to show the named tunnel section
+            setTimeout(() => loadSettings(), 2000);
+        } else {
+            statusEl.style.color = 'var(--danger)';
+            statusEl.textContent = claimData.error || 'Claim failed. Try again.';
+        }
+    } catch {
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = 'Connection failed. Try again.';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Claim';
+});
 
 document.getElementById('save-server-name-btn').addEventListener('click', async () => {
     const name = document.getElementById('settings-server-name').value.trim();
@@ -480,12 +599,7 @@ document.getElementById('admin-reset-pw-form').addEventListener('submit', async 
     }
 
     try {
-        const resp = await fetch(`/api/admin/users/${userId}/password`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ new_password: newPw }),
-        });
-        const data = await resp.json();
+        const { resp, data } = await api.putAdminResetUserPassword(userId, { new_password: newPw });
         if (resp.ok) {
             successEl.textContent = 'Password has been reset.';
             successEl.classList.remove('hidden');

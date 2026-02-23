@@ -295,12 +295,7 @@ document.getElementById('user-change-pw-form').addEventListener('submit', async 
     }
 
     try {
-        const resp = await fetch('/api/auth/password', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ current_password: current, new_password: newPw }),
-        });
-        const data = await resp.json();
+        const { resp, data } = await api.putUserPassword({ current_password: current, new_password: newPw });
         if (resp.ok) {
             successEl.textContent = 'Password updated.';
             successEl.classList.remove('hidden');

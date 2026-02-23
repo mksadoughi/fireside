@@ -342,6 +342,47 @@
                         <tbody id="apikeys-tbody"></tbody>
                     </table>
                     <p id="apikeys-empty" class="admin-empty hidden">No API keys yet.</p>
+
+                    <div class="api-docs-section"
+                        style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                        <h2>Integration Examples</h2>
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Fireside runs an OpenAI-compatible
+                            endpoint. Any app that supports OpenAI can securely route tasks through your private models.
+                        </p>
+
+                        <div class="integration-card"
+                            style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; margin-top: 1rem;">
+                            <h3
+                                style="margin-top:0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                                    </path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                                Open WebUI
+                            </h3>
+                            <p
+                                style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">
+                                Combine Open WebUI's massive feature set (RAG, Web Scraping, Workspaces) with Fireside's
+                                deeply private local inference engine.</p>
+
+                            <ol style="font-size: 0.9em; padding-left: 1.2rem; margin-bottom: 0; line-height: 1.6;">
+                                <li>In Open WebUI, navigate to <strong>Admin Panel &rarr; Settings &rarr;
+                                        Connections</strong>.</li>
+                                <li>Under the <strong>OpenAI API</strong> section, click the <strong>+</strong> button
+                                    to add a custom connection.</li>
+                                <li>Set the <strong>API Base URL</strong> to: <code id="api-base-url-example"
+                                        style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; margin: 0 4px; font-family: monospace;">http://localhost:7654/v1</code>
+                                </li>
+                                <li>Set the <strong>API Key</strong> to a brand new Key generated above.</li>
+                                <li>Click the <strong>Verify icon</strong>. You can now select your local Ollama models
+                                    directly from Open WebUI's chat interface!</li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Settings Tab -->
@@ -358,14 +399,48 @@
                     </div>
 
                     <div class="settings-section">
-                        <h2>Tunnel URL</h2>
-                        <p class="admin-hint">Set this to your Cloudflare Tunnel URL so invite links use the public
-                            address.</p>
-                        <div class="admin-form-row">
-                            <input type="text" id="settings-tunnel-url" placeholder="e.g. https://ai.kazem.com">
-                            <button id="save-tunnel-url-btn" class="btn-primary">Save</button>
+                        <h2>Public URL</h2>
+
+                        <!-- Named tunnel: permanent name.fireside.run subdomain claimed -->
+                        <div id="tunnel-named-section" class="hidden">
+                            <p class="admin-hint">Your permanent address — never changes on restart.</p>
+                            <div class="copy-row" style="margin-bottom:0.5rem;">
+                                <input type="text" id="tunnel-named-url-display" readonly>
+                                <button id="copy-named-url-btn" class="btn-secondary">Copy</button>
+                            </div>
+                            <span class="model-badge model-badge-loaded">Permanent</span>
                         </div>
-                        <div id="settings-tunnel-msg" class="settings-msg hidden"></div>
+
+                        <!-- Auto mode: quick tunnel active, no name claimed yet -->
+                        <div id="tunnel-auto-section" class="hidden">
+                            <p class="admin-hint">Connected via a temporary Cloudflare Tunnel. Claim a permanent address below — it never changes on restart.</p>
+                            <div class="copy-row" style="margin-bottom:0.5rem;">
+                                <input type="text" id="tunnel-url-display" readonly placeholder="Connecting…">
+                                <button id="copy-tunnel-url-btn" class="btn-secondary">Copy</button>
+                            </div>
+                            <span id="tunnel-status-badge"></span>
+
+                            <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--border);">
+                                <h3 style="margin:0 0 0.4rem 0; font-size:0.95rem;">Claim your permanent address</h3>
+                                <p class="admin-hint" style="margin-bottom:0.75rem;">Pick a name — you'll get <strong>name.fireside.run</strong> permanently, for free.</p>
+                                <div class="admin-form-row">
+                                    <input type="text" id="tunnel-name-input" placeholder="yourname" maxlength="32" style="font-family:monospace; max-width:160px;">
+                                    <span style="align-self:center; color:var(--text-muted); font-family:monospace; white-space:nowrap;">.fireside.run</span>
+                                    <button id="claim-tunnel-btn" class="btn-primary">Claim</button>
+                                </div>
+                                <div id="tunnel-name-status" style="margin-top:0.5rem; font-size:0.85rem; min-height:1.2em;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Manual mode: user sets URL themselves (--no-tunnel) -->
+                        <div id="tunnel-manual-section" class="hidden">
+                            <p class="admin-hint">Set your public URL so invite links use the right address.</p>
+                            <div class="admin-form-row">
+                                <input type="text" id="settings-tunnel-url" placeholder="https://…">
+                                <button id="save-tunnel-url-btn" class="btn-primary">Save</button>
+                            </div>
+                            <div id="settings-tunnel-msg" class="settings-msg hidden"></div>
+                        </div>
                     </div>
 
                     <div class="settings-section">

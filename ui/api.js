@@ -64,4 +64,12 @@ export const putAdminPassword = (body) => fetchJSON('/api/admin/password', {
     method: 'PUT',
     body: JSON.stringify(body),
 });
+export const putUserPassword = (body) => fetchJSON('/api/auth/password', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+});
+export const putAdminResetUserPassword = (userId, body) => fetchJSON(`/api/admin/users/${userId}/password`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+});
 export const postResetServer = () => fetchJSON('/api/admin/reset', { method: 'POST' });
