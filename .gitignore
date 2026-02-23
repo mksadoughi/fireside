@@ -4,3 +4,5 @@ fireside
 venv/
 __pycache__/
 .pytest_cache/
+.secrets
+workers/.dev.vars
