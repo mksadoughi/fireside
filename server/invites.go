@@ -241,6 +241,10 @@ func handleRegister(db *DB) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 6 characters"})
 			return
 		}
+		if isReservedUsername(req.Username) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "that username is reserved, please choose another"})
+			return
+		}
 
 		invite, encKey, err := db.ValidateInvite(req.Token)
 		if err != nil {
@@ -269,7 +273,7 @@ func handleRegister(db *DB) http.HandlerFunc {
 			return
 		}
 
-		setSessionCookie(w, sessionID)
+		setSessionCookie(w, r, sessionID)
 		writeJSON(w, http.StatusCreated, map[string]any{
 			"user": map[string]any{
 				"id":             user.ID,

@@ -1,16 +1,22 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fireside/ui"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +37,7 @@ func main() {
 	ollamaURL := flag.String("ollama-url", "http://localhost:11434", "Ollama API base URL")
 	dataDir := flag.String("data-dir", defaultDataDir(), "data directory for database and config")
 	resetAdminPassword := flag.String("reset-admin", "", "force completely resets the password for the admin account to the specified password")
+	noTunnel := flag.Bool("no-tunnel", false, "disable Cloudflare Tunnel automation (public URL must be set manually)")
 	flag.Parse()
 
 	dbPath := filepath.Join(*dataDir, "data.db")
@@ -65,6 +72,95 @@ func main() {
 	}
 
 	ollama := NewOllamaClient(*ollamaURL)
+
+	// Start tunnel provider — runs in background, stores public URL in DB when ready.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var tunnel TunnelProvider
+	if *noTunnel {
+		tunnel = &NoopTunnelProvider{}
+		log.Printf("Tunnel: disabled (--no-tunnel). Set public URL manually in admin settings.")
+	} else if HasNamedTunnel(db) {
+		tunnel = NewNamedTunnelProvider(db)
+		log.Printf("Tunnel: using named tunnel (permanent subdomain)")
+	} else {
+		tunnel = NewCloudflaredProvider(*port)
+		log.Printf("Tunnel: using quick tunnel (claim a permanent name in admin settings)")
+	}
+
+	urlCh, err := tunnel.Start(ctx)
+	if err != nil {
+		log.Printf("Tunnel: failed to start: %v", err)
+	} else {
+		go func() {
+			for url := range urlCh {
+				if err := db.SetConfig("tunnel_url", url); err != nil {
+					log.Printf("Tunnel: failed to store URL: %v", err)
+				}
+				log.Printf("Tunnel active: %s", url)
+			}
+		}()
+	}
+
+	// Heartbeat: if a named tunnel is claimed, ping the registration Worker daily
+	// to keep the name alive (30-day expiry policy).
+	if HasNamedTunnel(db) {
+		go func() {
+			sendHeartbeat(db)
+			ticker := time.NewTicker(24 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					sendHeartbeat(db)
+				}
+			}
+		}()
+	}
+
+	// Hot-swap callback: switches from quick tunnel to named tunnel after a successful claim.
+	activatNamedTunnel := func() {
+		tunnel.Stop()
+		cancel()
+
+		newCtx, newCancel := context.WithCancel(context.Background())
+		named := NewNamedTunnelProvider(db)
+		newUrlCh, err := named.Start(newCtx)
+		if err != nil {
+			log.Printf("Tunnel hot-swap failed: %v", err)
+			newCancel()
+			return
+		}
+
+		tunnel = named
+		cancel = newCancel
+
+		go func() {
+			for url := range newUrlCh {
+				db.SetConfig("tunnel_url", url)
+				log.Printf("Tunnel active: %s", url)
+			}
+		}()
+
+		go func() {
+			sendHeartbeat(db)
+			ticker := time.NewTicker(24 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-newCtx.Done():
+					return
+				case <-ticker.C:
+					sendHeartbeat(db)
+				}
+			}
+		}()
+
+		log.Printf("Tunnel: hot-swapped to named tunnel")
+	}
 
 	mux := http.NewServeMux()
 
@@ -110,8 +206,10 @@ func main() {
 	mux.HandleFunc("POST /api/admin/models/pull", requireAdmin(db, handlePullModel(ollama)))
 	mux.HandleFunc("DELETE /api/admin/models", requireAdmin(db, handleDeleteModel(ollama)))
 	mux.HandleFunc("GET /api/admin/models/running", requireAdmin(db, handleListRunningModels(ollama)))
-	mux.HandleFunc("GET /api/admin/settings", requireAdmin(db, handleGetSettings(db)))
-	mux.HandleFunc("PUT /api/admin/settings", requireAdmin(db, handleUpdateSettings(db)))
+	mux.HandleFunc("GET /api/admin/settings", requireAdmin(db, handleGetSettings(db, tunnel)))
+	mux.HandleFunc("PUT /api/admin/settings", requireAdmin(db, handleUpdateSettings(db, tunnel)))
+	mux.HandleFunc("POST /api/admin/tunnel/check", requireAdmin(db, handleTunnelCheck()))
+	mux.HandleFunc("POST /api/admin/tunnel/claim", requireAdmin(db, handleTunnelClaim(db, activatNamedTunnel)))
 	mux.HandleFunc("PUT /api/admin/password", requireAdmin(db, handleChangePassword(db)))
 	mux.HandleFunc("POST /api/admin/reset", requireAdmin(db, handleResetServer(db)))
 
@@ -161,16 +259,27 @@ func handleAdminStats(db *DB, ollama *OllamaClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userCount, messagesToday, totalMessages, keyCount, inviteCount, activeSessions int
 
-		db.conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
-		db.conn.QueryRow("SELECT COUNT(*) FROM messages WHERE created_at >= date('now')").Scan(&messagesToday)
-		db.conn.QueryRow("SELECT COUNT(*) FROM messages").Scan(&totalMessages)
-		db.conn.QueryRow("SELECT COUNT(*) FROM api_keys").Scan(&keyCount)
-		db.conn.QueryRow("SELECT COUNT(*) FROM invite_links").Scan(&inviteCount)
-		db.conn.QueryRow("SELECT COUNT(*) FROM sessions WHERE expires_at > CURRENT_TIMESTAMP").Scan(&activeSessions)
+		queries := []struct {
+			dest  *int
+			query string
+		}{
+			{&userCount, "SELECT COUNT(*) FROM users"},
+			{&messagesToday, "SELECT COUNT(*) FROM messages WHERE created_at >= date('now')"},
+			{&totalMessages, "SELECT COUNT(*) FROM messages"},
+			{&keyCount, "SELECT COUNT(*) FROM api_keys"},
+			{&inviteCount, "SELECT COUNT(*) FROM invite_links"},
+			{&activeSessions, "SELECT COUNT(*) FROM sessions WHERE expires_at > CURRENT_TIMESTAMP"},
+		}
+		for _, q := range queries {
+			if err := db.conn.QueryRow(q.query).Scan(q.dest); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load stats"})
+				return
+			}
+		}
 
+		// Ollama may be temporarily unreachable; treat model count as best-effort.
 		var modelCount int
-		models, err := ollama.ListModels()
-		if err == nil {
+		if models, err := ollama.ListModels(); err == nil {
 			modelCount = len(models)
 		}
 
@@ -261,18 +370,21 @@ func handleListRunningModels(ollama *OllamaClient) http.HandlerFunc {
 
 // --- Admin: Settings ---
 
-func handleGetSettings(db *DB) http.HandlerFunc {
+func handleGetSettings(db *DB, tunnel TunnelProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverName, _ := db.GetConfig("server_name")
 		tunnelURL, _ := db.GetConfig("tunnel_url")
+		tunnelSubdomain, _ := db.GetConfig("tunnel_subdomain")
 		writeJSON(w, http.StatusOK, map[string]any{
-			"server_name": serverName,
-			"tunnel_url":  tunnelURL,
+			"server_name":      serverName,
+			"tunnel_url":       tunnelURL,
+			"tunnel_mode":      tunnel.Mode(),
+			"tunnel_subdomain": tunnelSubdomain,
 		})
 	}
 }
 
-func handleUpdateSettings(db *DB) http.HandlerFunc {
+func handleUpdateSettings(db *DB, tunnel TunnelProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ServerName *string `json:"server_name"`
@@ -285,11 +397,130 @@ func handleUpdateSettings(db *DB) http.HandlerFunc {
 		if req.ServerName != nil {
 			db.SetConfig("server_name", *req.ServerName)
 		}
-		if req.TunnelURL != nil {
+		// Only allow manual URL updates when the tunnel is not auto-managed.
+		if req.TunnelURL != nil && tunnel.Mode() == "manual" {
 			db.SetConfig("tunnel_url", *req.TunnelURL)
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 	}
+}
+
+const registrationWorkerURL = "https://api.fireside.run"
+
+// handleTunnelCheck proxies a name availability check to the registration Worker.
+func handleTunnelCheck() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+		body, _ := json.Marshal(req)
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Post(registrationWorkerURL+"/check", "application/json", bytes.NewReader(body))
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "registration service unavailable"})
+			return
+		}
+		defer resp.Body.Close()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+	}
+}
+
+// handleTunnelClaim claims a name from the registration Worker and stores credentials in DB.
+func handleTunnelClaim(db *DB, onClaimed func()) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+			return
+		}
+		if req.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
+			return
+		}
+
+		// Generate a stable instance ID for this server (used for heartbeat auth).
+		instanceID, _ := db.GetConfig("tunnel_instance_id")
+		if instanceID == "" {
+			b := make([]byte, 16)
+			rand.Read(b)
+			instanceID = hex.EncodeToString(b)
+			db.SetConfig("tunnel_instance_id", instanceID)
+		}
+
+		body, _ := json.Marshal(map[string]string{
+			"name":        req.Name,
+			"instance_id": instanceID,
+		})
+		client := &http.Client{Timeout: 15 * time.Second}
+		resp, err := client.Post(registrationWorkerURL+"/claim", "application/json", bytes.NewReader(body))
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "registration service unavailable"})
+			return
+		}
+		defer resp.Body.Close()
+
+		respBody, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusCreated {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.StatusCode)
+			w.Write(respBody)
+			return
+		}
+
+		var result struct {
+			TunnelToken string `json:"tunnel_token"`
+			TunnelName  string `json:"tunnel_name"`
+			Subdomain   string `json:"subdomain"`
+		}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "invalid response from registration service"})
+			return
+		}
+		if result.TunnelToken == "" || result.Subdomain == "" {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "registration service returned incomplete data"})
+			return
+		}
+
+		// Store credentials.
+		db.SetConfig("tunnel_token", result.TunnelToken)
+		db.SetConfig("tunnel_subdomain", result.Subdomain)
+		db.SetConfig("tunnel_url", "https://"+result.Subdomain)
+
+		// Hot-swap: stop quick tunnel, start named tunnel immediately.
+		go onClaimed()
+
+		writeJSON(w, http.StatusOK, map[string]string{
+			"subdomain": result.Subdomain,
+			"url":       "https://" + result.Subdomain,
+			"message":   "Name claimed! Your permanent URL is now active.",
+		})
+	}
+}
+
+var heartbeatClient = &http.Client{Timeout: 30 * time.Second}
+
+func sendHeartbeat(db *DB) {
+	subdomain, _ := db.GetConfig("tunnel_subdomain")
+	instanceID, _ := db.GetConfig("tunnel_instance_id")
+	if subdomain == "" || instanceID == "" {
+		return
+	}
+	// Extract just the name part (e.g. "alice" from "alice.fireside.run")
+	name := strings.TrimSuffix(subdomain, ".fireside.run")
+	body, _ := json.Marshal(map[string]string{"name": name, "instance_id": instanceID})
+	resp, err := heartbeatClient.Post(registrationWorkerURL+"/heartbeat", "application/json", bytes.NewReader(body))
+	if err != nil {
+		log.Printf("Heartbeat: failed to send: %v", err)
+		return
+	}
+	resp.Body.Close()
+	log.Printf("Heartbeat: sent for %s (status %d)", subdomain, resp.StatusCode)
 }
 
 func handleChangePassword(db *DB) http.HandlerFunc {
@@ -401,14 +632,13 @@ func handleListModels(ollama *OllamaClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		models, err := ollama.ListModels()
 		if err != nil {
-			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err), http.StatusBadGateway)
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
-			"models": models,
-		})
+		if models == nil {
+			models = []Model{}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"models": models})
 	}
 }
 
@@ -419,6 +649,39 @@ type ConversationChatRequest struct {
 	ConversationID *int   `json:"conversation_id,omitempty"`
 	Encrypted      bool   `json:"encrypted"`
 	IV             string `json:"iv"`
+}
+
+// --- Helpers for Chat Encryption ---
+
+// decryptIncomingMessage decrypts an incoming AES-GCM encrypted message.
+func decryptIncomingMessage(user *User, req *ConversationChatRequest) {
+	if !req.Encrypted || len(user.EncryptionKey) != 32 {
+		return
+	}
+	ivBytes, err := base64.StdEncoding.DecodeString(req.IV)
+	if err != nil {
+		return
+	}
+	cipherBytes, err := base64.StdEncoding.DecodeString(req.Message)
+	if err != nil {
+		return
+	}
+	plaintext, err := DecryptAESGCM(user.EncryptionKey, ivBytes, cipherBytes)
+	if err == nil {
+		req.Message = string(plaintext)
+	}
+}
+
+// encryptOutgoingMessage encrypts an outgoing plaintext message.
+func encryptOutgoingMessage(user *User, content string) (string, string, bool) {
+	if len(user.EncryptionKey) != 32 {
+		return content, "", false
+	}
+	cipherBytes, ivBytes, err := EncryptAESGCM(user.EncryptionKey, []byte(content))
+	if err != nil {
+		return content, "", false
+	}
+	return base64.StdEncoding.EncodeToString(cipherBytes), base64.StdEncoding.EncodeToString(ivBytes), true
 }
 
 func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
@@ -434,18 +697,7 @@ func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 			return
 		}
 
-		if req.Encrypted && len(user.EncryptionKey) == 32 {
-			ivBytes, err := base64.StdEncoding.DecodeString(req.IV)
-			if err == nil {
-				cipherBytes, err := base64.StdEncoding.DecodeString(req.Message)
-				if err == nil {
-					plaintext, err := DecryptAESGCM(user.EncryptionKey, ivBytes, cipherBytes)
-					if err == nil {
-						req.Message = string(plaintext)
-					}
-				}
-			}
-		}
+		decryptIncomingMessage(user, &req)
 
 		convo, messages, err := prepareChat(db, user, &req)
 		if err != nil {
@@ -467,11 +719,11 @@ func handleChatWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc {
 		db.AddMessage(convo.ID, "user", req.Message, nil, user.EncryptionKey)
 		db.AddMessage(convo.ID, "assistant", resp.Message.Content, nil, user.EncryptionKey)
 
-		if req.Encrypted && len(user.EncryptionKey) == 32 {
-			cipherBytes, ivBytes, err := EncryptAESGCM(user.EncryptionKey, []byte(resp.Message.Content))
-			if err == nil {
-				resp.Message.Content = base64.StdEncoding.EncodeToString(cipherBytes)
-				resp.Message.IV = base64.StdEncoding.EncodeToString(ivBytes)
+		if req.Encrypted {
+			encryptedContent, iv, ok := encryptOutgoingMessage(user, resp.Message.Content)
+			if ok {
+				resp.Message.Content = encryptedContent
+				resp.Message.IV = iv
 				resp.Message.Encrypted = true
 			}
 		}
@@ -497,18 +749,7 @@ func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc 
 			return
 		}
 
-		if req.Encrypted && len(user.EncryptionKey) == 32 {
-			ivBytes, err := base64.StdEncoding.DecodeString(req.IV)
-			if err == nil {
-				cipherBytes, err := base64.StdEncoding.DecodeString(req.Message)
-				if err == nil {
-					plaintext, err := DecryptAESGCM(user.EncryptionKey, ivBytes, cipherBytes)
-					if err == nil {
-						req.Message = string(plaintext)
-					}
-				}
-			}
-		}
+		decryptIncomingMessage(user, &req)
 
 		convo, messages, err := prepareChat(db, user, &req)
 		if err != nil {
@@ -539,11 +780,11 @@ func handleChatStreamWithHistory(db *DB, ollama *OllamaClient) http.HandlerFunc 
 		err = ollama.ChatStream(req.Model, messages, nil, func(chunk StreamChunk) error {
 			fullResponse += chunk.Content
 
-			if req.Encrypted && len(user.EncryptionKey) == 32 {
-				cipherBytes, ivBytes, err := EncryptAESGCM(user.EncryptionKey, []byte(chunk.Content))
-				if err == nil {
-					chunk.Content = base64.StdEncoding.EncodeToString(cipherBytes)
-					chunk.IV = base64.StdEncoding.EncodeToString(ivBytes)
+			if req.Encrypted {
+				encryptedContent, iv, ok := encryptOutgoingMessage(user, chunk.Content)
+				if ok {
+					chunk.Content = encryptedContent
+					chunk.IV = iv
 					chunk.Encrypted = true
 				}
 			}

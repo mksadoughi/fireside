@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -230,6 +231,10 @@ func handleSetup(db *DB) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 6 characters"})
 			return
 		}
+		if isReservedUsername(req.Username) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "that username is reserved, please choose another"})
+			return
+		}
 
 		// Generate an encryption key for the admin user
 		encKey := make([]byte, 32)
@@ -253,7 +258,7 @@ func handleSetup(db *DB) http.HandlerFunc {
 			return
 		}
 
-		setSessionCookie(w, sessionID)
+		setSessionCookie(w, r, sessionID)
 		log.Printf("Setup complete: admin=%q, server=%q", req.Username, req.ServerName)
 		writeJSON(w, http.StatusCreated, map[string]any{
 			"user": map[string]any{
@@ -267,8 +272,39 @@ func handleSetup(db *DB) http.HandlerFunc {
 	}
 }
 
+// reservedUsernames that cannot be registered by anyone.
+var reservedUsernames = map[string]bool{
+	"admin": true, "administrator": true, "root": true,
+	"system": true, "fireside": true, "host": true,
+	"support": true, "moderator": true,
+}
+
+func isReservedUsername(username string) bool {
+	return reservedUsernames[strings.ToLower(username)]
+}
+
 // --- Rate Limiter for Login ---
 var loginAttempts sync.Map
+
+func init() {
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		for range ticker.C {
+			cleanRateLimits()
+		}
+	}()
+}
+
+func cleanRateLimits() {
+	now := time.Now()
+	loginAttempts.Range(func(key, value any) bool {
+		entry := value.(*rateLimitEntry)
+		if now.After(entry.window) {
+			loginAttempts.Delete(key)
+		}
+		return true
+	})
+}
 
 type rateLimitEntry struct {
 	attempts int
@@ -349,7 +385,7 @@ func handleLogin(db *DB) http.HandlerFunc {
 			return
 		}
 
-		setSessionCookie(w, sessionID)
+		setSessionCookie(w, r, sessionID)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"user": map[string]any{
 				"id":             user.ID,
@@ -373,6 +409,8 @@ func handleLogout(db *DB) http.HandlerFunc {
 			Path:     "/",
 			MaxAge:   -1,
 			HttpOnly: true,
+			Secure:   isSecureContext(r),
+			SameSite: http.SameSiteStrictMode,
 		})
 		writeJSON(w, http.StatusOK, map[string]string{"status": "logged out"})
 	}
@@ -479,13 +517,20 @@ func UserFromContext(ctx context.Context) *User {
 
 // --- Helpers ---
 
-func setSessionCookie(w http.ResponseWriter, sessionID string) {
+func isSecureContext(r *http.Request) bool {
+	return r.TLS != nil ||
+		r.Header.Get("X-Forwarded-Proto") == "https" ||
+		r.Header.Get("Cf-Connecting-Ip") != ""
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request, sessionID string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    sessionID,
 		Path:     "/",
 		MaxAge:   30 * 24 * 60 * 60, // 30 days
 		HttpOnly: true,
+		Secure:   isSecureContext(r),
 		SameSite: http.SameSiteStrictMode,
 	})
 }
