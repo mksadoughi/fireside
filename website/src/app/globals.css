@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050505;
+  --foreground: #ededed;
+
+  --accent-orange: #ff6b00;
+  --accent-blue: #00e5ff;
+}
+
+html.light {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --accent-orange: #e05500;
+  --accent-blue: #0090a8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-fire-orange: var(--accent-orange);
+  --color-cyan-glow: var(--accent-blue);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Documentation prose styles */
+.prose-fireside h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.prose-fireside h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: white;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.prose-fireside h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-fireside p {
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.75;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.prose-fireside a {
+  color: var(--accent-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.prose-fireside a:hover {
+  color: white;
+}
+
+.prose-fireside ul,
+.prose-fireside ol {
+  color: rgba(255, 255, 255, 0.6);
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.prose-fireside li {
+  margin-bottom: 0.4rem;
+  line-height: 1.7;
+}
+
+.prose-fireside ul li {
+  list-style-type: disc;
+}
+
+.prose-fireside ol li {
+  list-style-type: decimal;
+}
+
+.prose-fireside code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--accent-blue);
+  font-family: var(--font-mono);
+}
+
+.prose-fireside pre {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+
+.prose-fireside pre code {
+  background: none;
+  padding: 0;
+  color: var(--accent-blue);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.prose-fireside hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 2.5rem 0;
+}
+
+.prose-fireside table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.prose-fireside th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.prose-fireside td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.prose-fireside strong {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+/* FAQ accordion */
+.prose-fireside details {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.prose-fireside details summary {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  padding: 1rem 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: color 0.15s;
+}
+
+.prose-fireside details summary:hover {
+  color: white;
+}
+
+.prose-fireside details summary::-webkit-details-marker {
+  display: none;
+}
+
+.prose-fireside details summary::after {
+  content: "+";
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.prose-fireside details[open] summary::after {
+  content: "\2212";
+}
+
+.prose-fireside details .faq-answer {
+  padding-bottom: 1.25rem;
+}
+
+/* Light mode overrides */
+html.light .prose-fireside h1 {
+  color: #1a1a1a;
+}
+
+html.light .prose-fireside h2 {
+  color: #1a1a1a;
+}
+
+html.light .prose-fireside h3 {
+  color: #333;
+}
+
+html.light .prose-fireside p {
+  color: #555;
+}
+
+html.light .prose-fireside ul,
+html.light .prose-fireside ol {
+  color: #555;
+}
+
+html.light .prose-fireside strong {
+  color: #1a1a1a;
+}
+
+html.light .prose-fireside a {
+  color: var(--accent-blue);
+}
+
+html.light .prose-fireside a:hover {
+  color: #1a1a1a;
+}
+
+html.light .prose-fireside code {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--accent-blue);
+}
+
+html.light .prose-fireside pre {
+  background: #f5f5f5;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html.light .prose-fireside pre code {
+  color: #0090a8;
+}
+
+html.light .prose-fireside hr {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html.light .prose-fireside th {
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+html.light .prose-fireside td {
+  border-color: rgba(0, 0, 0, 0.05);
+  color: #555;
+}
+
+html.light .prose-fireside details {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html.light .prose-fireside details summary {
+  color: #1a1a1a;
+}
+
+html.light .prose-fireside details summary:hover {
+  color: #000;
+}
+
+html.light .prose-fireside details summary::after {
+  color: rgba(0, 0, 0, 0.25);
+}

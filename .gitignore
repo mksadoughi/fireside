@@ -1,0 +1,18 @@
+server/server
+fireside
+*.db
+venv/
+__pycache__/
+.pytest_cache/
+ui/dist/
+app-ui/node_modules/
+
+# Secrets and editor configs
+.secrets
+.claude/
+
+# Build artifacts
+dist/
+
+# Internal planning
+docs/

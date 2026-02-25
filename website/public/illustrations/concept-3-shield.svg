@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" fill="none">
+  <!-- Concept 3: Privacy-first — A large shield/house shape in the center representing the Host's machine, with encrypted paths radiating out to clients. Emphasizes "your data stays inside." -->
+  <style>
+    .label { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: currentColor; opacity: 0.5; }
+    .label-bold { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: currentColor; font-weight: 600; opacity: 0.8; }
+    .label-small { font-family: system-ui, -apple-system, sans-serif; font-size: 10.5px; fill: currentColor; opacity: 0.35; }
+    .label-inside { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: currentColor; opacity: 0.45; }
+    .conn { stroke: #00e5ff; stroke-opacity: 0.2; stroke-width: 1.5; stroke-dasharray: 6 3; }
+    .device { stroke: currentColor; stroke-opacity: 0.1; fill: currentColor; fill-opacity: 0.03; rx: 8; }
+  </style>
+
+  <defs>
+    <radialGradient id="shield-glow" cx="50%" cy="45%" r="40%">
+      <stop offset="0%" stop-color="#ff6b00" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ff6b00" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Shield glow -->
+  <circle cx="400" cy="190" r="160" fill="url(#shield-glow)"/>
+
+  <!-- Shield shape -->
+  <path d="M400,50 L310,90 L310,210 C310,280 400,330 400,330 C400,330 490,280 490,210 L490,90 Z"
+        stroke="currentColor" stroke-opacity="0.12" stroke-width="1.5" fill="currentColor" fill-opacity="0.03"/>
+
+  <!-- Inner content of the shield -->
+  <!-- Server icon -->
+  <g transform="translate(375, 105)">
+    <rect x="0" y="0" width="50" height="14" rx="3" stroke="#ff6b00" stroke-opacity="0.4" stroke-width="1.2" fill="#ff6b00" fill-opacity="0.05"/>
+    <circle cx="40" cy="7" r="2" fill="#ff6b00" opacity="0.4"/>
+    <rect x="0" y="18" width="50" height="14" rx="3" stroke="#ff6b00" stroke-opacity="0.4" stroke-width="1.2" fill="#ff6b00" fill-opacity="0.05"/>
+    <circle cx="40" cy="25" r="2" fill="#ff6b00" opacity="0.4"/>
+    <rect x="0" y="36" width="50" height="14" rx="3" stroke="#ff6b00" stroke-opacity="0.4" stroke-width="1.2" fill="#ff6b00" fill-opacity="0.05"/>
+    <circle cx="40" cy="43" r="2" fill="#ff6b00" opacity="0.4"/>
+  </g>
+
+  <text x="400" y="180" text-anchor="middle" class="label-bold" style="opacity: 0.7">Your Machine</text>
+  <text x="400" y="198" text-anchor="middle" class="label-inside">AI Models</text>
+  <text x="400" y="213" text-anchor="middle" class="label-inside">Chat History</text>
+  <text x="400" y="228" text-anchor="middle" class="label-inside">User Accounts</text>
+  <text x="400" y="243" text-anchor="middle" class="label-inside">Encryption Keys</text>
+
+  <!-- Lock at the top of the shield -->
+  <g transform="translate(393, 68)">
+    <rect x="0" y="5" width="14" height="10" rx="2.5" stroke="#00e5ff" stroke-opacity="0.6" stroke-width="1.3" fill="#00e5ff" fill-opacity="0.06"/>
+    <path d="M3,5 L3,2 A4,4 0 0,1 11,2 L11,5" stroke="#00e5ff" stroke-opacity="0.6" stroke-width="1.3" fill="none"/>
+  </g>
+
+  <!-- "Data stays here" label -->
+  <text x="400" y="305" text-anchor="middle" class="label-small" style="opacity: 0.4; font-size: 11px">Nothing leaves this machine</text>
+
+  <!-- Encrypted connections going out -->
+
+  <!-- Client 1: Top-left -->
+  <line x1="310" y1="140" x2="130" y2="80" class="conn"/>
+  <g transform="translate(40, 52)">
+    <rect x="0" y="0" width="100" height="50" class="device"/>
+    <rect x="12" y="10" width="14" height="24" rx="3" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.1" fill="none"/>
+    <text x="35" y="27" class="label-bold">Family</text>
+    <text x="35" y="42" class="label">Phone</text>
+  </g>
+
+  <!-- Client 2: Top-right -->
+  <line x1="490" y1="140" x2="670" y2="80" class="conn"/>
+  <g transform="translate(660, 52)">
+    <rect x="0" y="0" width="100" height="50" class="device"/>
+    <rect x="10" y="10" width="20" height="13" rx="2" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.1" fill="none"/>
+    <line x1="7" y1="27" x2="33" y2="27" stroke="currentColor" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="38" y="27" class="label-bold">Friend</text>
+    <text x="38" y="42" class="label">Laptop</text>
+  </g>
+
+  <!-- Client 3: Bottom-left -->
+  <line x1="325" y1="260" x2="140" y2="300" class="conn"/>
+  <g transform="translate(40, 278)">
+    <rect x="0" y="0" width="100" height="50" class="device"/>
+    <rect x="10" y="10" width="18" height="24" rx="3" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.1" fill="none"/>
+    <text x="36" y="27" class="label-bold">Partner</text>
+    <text x="36" y="42" class="label">Tablet</text>
+  </g>
+
+  <!-- Client 4: Bottom-right -->
+  <line x1="475" y1="260" x2="660" y2="300" class="conn"/>
+  <g transform="translate(660, 278)">
+    <rect x="0" y="0" width="100" height="50" class="device"/>
+    <text x="12" y="27" class="label" style="font-family: monospace; font-size: 12px; opacity: 0.35">&gt;_</text>
+    <text x="36" y="27" class="label-bold">Dev</text>
+    <text x="36" y="42" class="label">API</text>
+  </g>
+
+  <!-- Encrypted labels on connections -->
+  <g transform="translate(195, 98)">
+    <rect x="0" y="0" width="50" height="16" rx="8" fill="#00e5ff" fill-opacity="0.05"/>
+    <text x="25" y="11" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" fill="#00e5ff" opacity="0.45">AES-256</text>
+  </g>
+
+  <g transform="translate(555, 98)">
+    <rect x="0" y="0" width="50" height="16" rx="8" fill="#00e5ff" fill-opacity="0.05"/>
+    <text x="25" y="11" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" fill="#00e5ff" opacity="0.45">AES-256</text>
+  </g>
+</svg>

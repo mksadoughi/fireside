@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" fill="none">
+  <!-- Concept 1: Clean architecture diagram — Host machine on the left, encrypted tunnel in the middle, clients on the right -->
+  <style>
+    .label { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: currentColor; opacity: 0.6; }
+    .label-bold { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; fill: currentColor; font-weight: 600; opacity: 0.85; }
+    .label-small { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: currentColor; opacity: 0.4; }
+    .box { stroke: currentColor; stroke-opacity: 0.12; fill: currentColor; fill-opacity: 0.03; rx: 12; }
+    .box-inner { stroke: currentColor; stroke-opacity: 0.08; fill: currentColor; fill-opacity: 0.02; rx: 8; }
+    .line { stroke: currentColor; stroke-opacity: 0.15; stroke-width: 1.5; }
+    .line-encrypted { stroke: #00e5ff; stroke-opacity: 0.4; stroke-width: 2; stroke-dasharray: 8 4; }
+    .dot { fill: #00e5ff; opacity: 0.6; }
+    .dot-orange { fill: #ff6b00; opacity: 0.6; }
+    .icon { stroke: currentColor; stroke-opacity: 0.5; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+
+  <!-- Host Machine -->
+  <rect x="40" y="60" width="220" height="280" class="box"/>
+  <text x="150" y="95" text-anchor="middle" class="label-bold">Host's Computer</text>
+
+  <!-- Inner boxes -->
+  <rect x="60" y="115" width="180" height="50" class="box-inner"/>
+  <circle cx="85" cy="140" r="4" class="dot-orange"/>
+  <text x="100" y="145" class="label">AI Models (Ollama)</text>
+
+  <rect x="60" y="175" width="180" height="50" class="box-inner"/>
+  <circle cx="85" cy="200" r="4" class="dot-orange"/>
+  <text x="100" y="205" class="label">Fireside Server</text>
+
+  <rect x="60" y="235" width="180" height="50" class="box-inner"/>
+  <circle cx="85" cy="260" r="4" class="dot-orange"/>
+  <text x="100" y="265" class="label">Chat &amp; User Data</text>
+
+  <text x="150" y="315" text-anchor="middle" class="label-small">Everything stays here</text>
+
+  <!-- Encrypted Tunnel -->
+  <line x1="270" y1="200" x2="500" y2="130" class="line-encrypted"/>
+  <line x1="270" y1="200" x2="500" y2="200" class="line-encrypted"/>
+  <line x1="270" y1="200" x2="500" y2="270" class="line-encrypted"/>
+
+  <!-- Lock icon in the middle -->
+  <g transform="translate(370, 185)">
+    <rect x="-14" y="-14" width="28" height="28" rx="14" fill="#00e5ff" fill-opacity="0.08"/>
+    <rect x="-5" y="-1" width="10" height="8" rx="2" stroke="#00e5ff" stroke-opacity="0.6" stroke-width="1.5" fill="none"/>
+    <path d="M-3,-1 L-3,-4 A3,3 0 0,1 3,-4 L3,-1" stroke="#00e5ff" stroke-opacity="0.6" stroke-width="1.5" fill="none"/>
+  </g>
+  <text x="385" y="225" text-anchor="middle" class="label-small" fill="#00e5ff" style="opacity:0.5">Encrypted</text>
+
+  <!-- Clients -->
+  <!-- Client 1: Phone -->
+  <g transform="translate(540, 100)">
+    <rect x="0" y="0" width="200" height="55" class="box-inner"/>
+    <rect x="18" y="12" width="18" height="30" rx="3" class="icon"/>
+    <line x1="24" y1="36" x2="32" y2="36" class="icon" stroke-opacity="0.3"/>
+    <text x="50" y="28" class="label">Mom's iPhone</text>
+    <text x="50" y="42" class="label-small">Safari — no install</text>
+  </g>
+
+  <!-- Client 2: Laptop -->
+  <g transform="translate(540, 172)">
+    <rect x="0" y="0" width="200" height="55" class="box-inner"/>
+    <rect x="15" y="12" width="24" height="16" rx="2" class="icon"/>
+    <line x1="12" y1="32" x2="42" y2="32" class="icon" stroke-opacity="0.3"/>
+    <text x="50" y="28" class="label">Brother's Laptop</text>
+    <text x="50" y="42" class="label-small">Chrome — no install</text>
+  </g>
+
+  <!-- Client 3: Developer -->
+  <g transform="translate(540, 244)">
+    <rect x="0" y="0" width="200" height="55" class="box-inner"/>
+    <text x="20" y="28" class="label" style="font-family: monospace; font-size: 15px; opacity: 0.4">&gt;_</text>
+    <text x="50" y="28" class="label">Friend (Developer)</text>
+    <text x="50" y="42" class="label-small">API access</text>
+  </g>
+
+  <text x="640" y="85" text-anchor="middle" class="label-bold">Clients</text>
+  <text x="640" y="330" text-anchor="middle" class="label-small">Just a browser. Nothing to install.</text>
+</svg>

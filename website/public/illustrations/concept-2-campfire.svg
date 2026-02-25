@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" fill="none">
+  <!-- Concept 2: Fireside campfire — a warm fire (the AI) in the center, people/devices gathered around it in a circle, connected by a soft glow -->
+  <style>
+    .label { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: currentColor; opacity: 0.5; }
+    .label-bold { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: currentColor; font-weight: 600; opacity: 0.8; }
+    .label-center { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: currentColor; opacity: 0.35; text-anchor: middle; }
+    .device-box { stroke: currentColor; stroke-opacity: 0.1; fill: currentColor; fill-opacity: 0.03; rx: 10; }
+    .conn { stroke: #ff6b00; stroke-opacity: 0.12; stroke-width: 1.5; }
+  </style>
+
+  <!-- Warm glow behind the fire -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b00" stop-opacity="0.08"/>
+      <stop offset="60%" stop-color="#ff6b00" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#ff6b00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="inner-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b00" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ff6b00" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Outer glow -->
+  <circle cx="400" cy="225" r="200" fill="url(#glow)"/>
+  <circle cx="400" cy="225" r="90" fill="url(#inner-glow)"/>
+
+  <!-- Connection lines from fire to each device (subtle, warm) -->
+  <line x1="400" y1="225" x2="150" y2="120" class="conn"/>
+  <line x1="400" y1="225" x2="650" y2="120" class="conn"/>
+  <line x1="400" y1="225" x2="130" y2="310" class="conn"/>
+  <line x1="400" y1="225" x2="670" y2="310" class="conn"/>
+  <line x1="400" y1="225" x2="400" y2="420" class="conn"/>
+
+  <!-- The Fire (center) — stylized flame icon -->
+  <g transform="translate(400, 210)">
+    <!-- Flame shape -->
+    <path d="M0,-35 C-5,-25 -18,-15 -18,5 C-18,15 -10,25 0,25 C10,25 18,15 18,5 C18,-15 5,-25 0,-35Z" fill="#ff6b00" opacity="0.3"/>
+    <path d="M0,-25 C-3,-18 -11,-10 -11,3 C-11,10 -6,17 0,17 C6,17 11,10 11,3 C11,-10 3,-18 0,-25Z" fill="#ff6b00" opacity="0.5"/>
+    <path d="M0,-15 C-2,-10 -6,-5 -6,2 C-6,6 -3,10 0,10 C3,10 6,6 6,2 C6,-5 2,-10 0,-15Z" fill="#ff8c3a" opacity="0.7"/>
+  </g>
+
+  <!-- Center label -->
+  <text x="400" y="258" class="label-center" style="opacity: 0.5; font-size: 13px; font-weight: 600">Your AI</text>
+  <text x="400" y="274" class="label-center">Running on your hardware</text>
+
+  <!-- Device 1: Top-left — Phone -->
+  <g transform="translate(90, 80)">
+    <rect x="0" y="0" width="120" height="70" class="device-box"/>
+    <rect x="15" y="14" width="16" height="26" rx="3" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.2" fill="none"/>
+    <line x1="20" y1="35" x2="26" y2="35" stroke="currentColor" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="42" y="30" class="label-bold">Mom</text>
+    <text x="42" y="45" class="label">iPhone</text>
+  </g>
+
+  <!-- Device 2: Top-right — Laptop -->
+  <g transform="translate(590, 80)">
+    <rect x="0" y="0" width="120" height="70" class="device-box"/>
+    <rect x="13" y="14" width="22" height="14" rx="2" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.2" fill="none"/>
+    <line x1="10" y1="32" x2="38" y2="32" stroke="currentColor" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="44" y="30" class="label-bold">Sister</text>
+    <text x="44" y="45" class="label">Laptop</text>
+  </g>
+
+  <!-- Device 3: Left — Tablet -->
+  <g transform="translate(70, 275)">
+    <rect x="0" y="0" width="120" height="70" class="device-box"/>
+    <rect x="13" y="14" width="20" height="26" rx="3" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.2" fill="none"/>
+    <text x="44" y="30" class="label-bold">Dad</text>
+    <text x="44" y="45" class="label">iPad</text>
+  </g>
+
+  <!-- Device 4: Right — Desktop -->
+  <g transform="translate(610, 275)">
+    <rect x="0" y="0" width="120" height="70" class="device-box"/>
+    <rect x="13" y="12" width="22" height="16" rx="2" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.2" fill="none"/>
+    <line x1="10" y1="32" x2="38" y2="32" stroke="currentColor" stroke-opacity="0.15" stroke-width="1"/>
+    <line x1="22" y1="32" x2="22" y2="40" stroke="currentColor" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="44" y="30" class="label-bold">Friend</text>
+    <text x="44" y="45" class="label">Desktop</text>
+  </g>
+
+  <!-- Device 5: Bottom — Developer terminal -->
+  <g transform="translate(340, 385)">
+    <rect x="0" y="0" width="120" height="50" class="device-box"/>
+    <text x="15" y="28" class="label" style="font-family: monospace; font-size: 13px; opacity: 0.35">&gt;_</text>
+    <text x="42" y="28" class="label-bold">Dev</text>
+    <text x="42" y="41" class="label">API</text>
+  </g>
+
+  <!-- Encrypted badge -->
+  <g transform="translate(345, 155)">
+    <rect x="0" y="0" width="110" height="24" rx="12" fill="#00e5ff" fill-opacity="0.06" stroke="#00e5ff" stroke-opacity="0.15" stroke-width="1"/>
+    <!-- Lock icon -->
+    <rect x="14" y="9" width="8" height="6" rx="1.5" stroke="#00e5ff" stroke-opacity="0.5" stroke-width="1" fill="none"/>
+    <path d="M16,9 L16,7 A2,2 0 0,1 20,7 L20,9" stroke="#00e5ff" stroke-opacity="0.5" stroke-width="1" fill="none"/>
+    <text x="28" y="16" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#00e5ff" opacity="0.6">Encrypted</text>
+  </g>
+</svg>

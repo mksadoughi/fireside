@@ -1,0 +1,134 @@
+#!/bin/sh
+# Fireside install script
+# Usage: curl -fsSL https://fireside.run/install | sh
+set -e
+
+PORT=7654
+ISSUE_URL="https://github.com/mksadoughi/fireside/issues/new?template=bug_report.md"
+INSTALL_DIR="${HOME}/.fireside/bin"
+
+# ── Colours ───────────────────────────────────────────────────────────────────
+BOLD='\033[1m'
+DIM='\033[2m'
+UL='\033[4m'
+ORANGE='\033[38;5;208m'
+CYAN='\033[38;5;45m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# OSC 8 hyperlink
+link() { printf "\033]8;;%s\033\\\\%s\033]8;;\033\\\\" "$1" "$2"; }
+
+# ── Platform detection ────────────────────────────────────────────────────────
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+
+case "$ARCH" in
+    x86_64)         ARCH="amd64" ;;
+    aarch64|arm64)  ARCH="arm64" ;;
+    *)              printf "\n  ${RED}Unsupported architecture: ${ARCH}${NC}\n  $(link "$ISSUE_URL" "${UL}Report this issue${NC}")\n\n" >&2; exit 1 ;;
+esac
+
+case "$OS" in
+    darwin|linux) ;;
+    *)  printf "\n  ${RED}Unsupported OS: ${OS}${NC}\n  $(link "$ISSUE_URL" "${UL}Report this issue${NC}")\n\n" >&2; exit 1 ;;
+esac
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+download() {
+    url="$1"; dest="$2"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$url" -o "$dest"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "$dest" "$url"
+    else
+        return 1
+    fi
+}
+
+install_ollama() {
+    command -v ollama >/dev/null 2>&1 && return 0
+    curl -fsSL https://ollama.com/install.sh | sh >/dev/null 2>&1 || return 1
+}
+
+install_cloudflared() {
+    command -v cloudflared >/dev/null 2>&1 && return 0
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install cloudflared >/dev/null 2>&1 && return 0
+    fi
+    CF_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-${OS}-${ARCH}"
+    download "$CF_URL" "${INSTALL_DIR}/cloudflared" 2>/dev/null && chmod +x "${INSTALL_DIR}/cloudflared" 2>/dev/null || return 1
+}
+
+install_fireside() {
+    BINARY="fireside-${OS}-${ARCH}"
+    RELEASE_URL="https://github.com/mksadoughi/fireside/releases/latest/download/${BINARY}"
+    mkdir -p "${INSTALL_DIR}"
+    download "$RELEASE_URL" "${INSTALL_DIR}/fireside" && chmod +x "${INSTALL_DIR}/fireside"
+}
+
+# Add ~/.fireside/bin to PATH in shell profile if not already there
+add_to_path() {
+    case ":${PATH}:" in
+        *":${INSTALL_DIR}:"*) return 0 ;;
+    esac
+
+    SHELL_NAME=$(basename "$SHELL" 2>/dev/null || echo "sh")
+    case "$SHELL_NAME" in
+        zsh)  PROFILE="${HOME}/.zshrc" ;;
+        bash)
+            if [ -f "${HOME}/.bash_profile" ]; then
+                PROFILE="${HOME}/.bash_profile"
+            else
+                PROFILE="${HOME}/.bashrc"
+            fi
+            ;;
+        *)    PROFILE="${HOME}/.profile" ;;
+    esac
+
+    printf '\n# Fireside\nexport PATH="${HOME}/.fireside/bin:${PATH}"\n' >> "$PROFILE"
+    export PATH="${INSTALL_DIR}:${PATH}"
+    NEEDS_RELOAD=1
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+NEEDS_RELOAD=0
+
+printf "\n"
+printf "  ${ORANGE}╭──────────────────────────────╮${NC}\n"
+printf "  ${ORANGE}│${NC}                              ${ORANGE}│${NC}\n"
+printf "  ${ORANGE}│${NC} ${ORANGE}${BOLD}█▀▀ █ █▀█ █▀▀ █▀▀ █ █▀▄ █▀▀${NC} ${ORANGE}│${NC}\n"
+printf "  ${ORANGE}│${NC} ${ORANGE}${BOLD}█▀  █ █▀▄ ██▄ ▄▀█ █ █▄▀ ██▄${NC} ${ORANGE}│${NC}\n"
+printf "  ${ORANGE}│${NC}                              ${ORANGE}│${NC}\n"
+printf "  ${ORANGE}╰──────────────────────────────╯${NC}\n"
+printf "  ${DIM}Private AI server you can share with a link${NC}\n"
+printf "\n"
+printf "  Setting up..."
+
+install_ollama || true
+install_cloudflared || true
+
+if ! install_fireside; then
+    printf " ${RED}failed${NC}\n"
+    printf "\n"
+    printf "  Something went wrong.\n"
+    printf "  $(link "$ISSUE_URL" "${UL}Report this issue${NC}")\n"
+    printf "\n"
+    exit 1
+fi
+
+add_to_path
+
+printf " ${GREEN}done${NC}\n"
+printf "\n"
+printf "  To start your server, run:\n"
+printf "\n"
+if [ "$NEEDS_RELOAD" = "1" ]; then
+    printf "    ${BOLD}source ~/${PROFILE##*/} && fireside${NC}\n"
+    printf "\n"
+    printf "  ${DIM}After the first time, just run: fireside${NC}\n"
+else
+    printf "    ${BOLD}fireside${NC}\n"
+fi
+printf "\n"

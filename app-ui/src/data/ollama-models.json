@@ -1,0 +1,448 @@
+[
+  {
+    "name": "llama3.2",
+    "description": "Meta's compact Llama 3.2 model. Fast and efficient for everyday tasks.",
+    "category": "general",
+    "variants": [
+      { "tag": "1b", "parameters": "1B", "size_gb": 0.7, "ram_gb": 2 },
+      { "tag": "3b", "parameters": "3B", "size_gb": 2.0, "ram_gb": 4 }
+    ]
+  },
+  {
+    "name": "llama3.1",
+    "description": "Meta's Llama 3.1. Strong general-purpose model with larger size options.",
+    "category": "general",
+    "variants": [
+      { "tag": "8b", "parameters": "8B", "size_gb": 4.7, "ram_gb": 8 },
+      { "tag": "70b", "parameters": "70B", "size_gb": 40, "ram_gb": 64 },
+      { "tag": "405b", "parameters": "405B", "size_gb": 230, "ram_gb": 384 }
+    ]
+  },
+  {
+    "name": "llama3.3",
+    "description": "Meta's latest Llama 3.3. Best quality in the Llama family.",
+    "category": "general",
+    "variants": [
+      { "tag": "70b", "parameters": "70B", "size_gb": 43, "ram_gb": 64 }
+    ]
+  },
+  {
+    "name": "gemma2",
+    "description": "Google's Gemma 2. Excellent quality-to-size ratio.",
+    "category": "general",
+    "variants": [
+      { "tag": "2b", "parameters": "2B", "size_gb": 1.6, "ram_gb": 4 },
+      { "tag": "9b", "parameters": "9B", "size_gb": 5.4, "ram_gb": 10 },
+      { "tag": "27b", "parameters": "27B", "size_gb": 16, "ram_gb": 28 }
+    ]
+  },
+  {
+    "name": "gemma3",
+    "description": "Google's Gemma 3. Latest generation with improved reasoning.",
+    "category": "general",
+    "variants": [
+      { "tag": "1b", "parameters": "1B", "size_gb": 0.8, "ram_gb": 2 },
+      { "tag": "4b", "parameters": "4B", "size_gb": 3.0, "ram_gb": 6 },
+      { "tag": "12b", "parameters": "12B", "size_gb": 8.1, "ram_gb": 14 },
+      { "tag": "27b", "parameters": "27B", "size_gb": 17, "ram_gb": 28 }
+    ]
+  },
+  {
+    "name": "mistral",
+    "description": "Mistral AI's flagship 7B model. Great balance of speed and quality.",
+    "category": "general",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.1, "ram_gb": 8 }
+    ]
+  },
+  {
+    "name": "mistral-small",
+    "description": "Mistral's optimized smaller model for efficient inference.",
+    "category": "general",
+    "variants": [
+      { "tag": "24b", "parameters": "24B", "size_gb": 14, "ram_gb": 24 }
+    ]
+  },
+  {
+    "name": "mixtral",
+    "description": "Mistral's mixture-of-experts model. High quality with efficient inference.",
+    "category": "general",
+    "variants": [
+      { "tag": "8x7b", "parameters": "8x7B", "size_gb": 26, "ram_gb": 48 },
+      { "tag": "8x22b", "parameters": "8x22B", "size_gb": 80, "ram_gb": 128 }
+    ]
+  },
+  {
+    "name": "phi3",
+    "description": "Microsoft's Phi-3. Surprisingly capable for its small size.",
+    "category": "general",
+    "variants": [
+      { "tag": "3.8b", "parameters": "3.8B", "size_gb": 2.3, "ram_gb": 4 },
+      { "tag": "14b", "parameters": "14B", "size_gb": 7.9, "ram_gb": 14 }
+    ]
+  },
+  {
+    "name": "phi4",
+    "description": "Microsoft's Phi-4. Latest generation with strong reasoning.",
+    "category": "general",
+    "variants": [
+      { "tag": "14b", "parameters": "14B", "size_gb": 9.1, "ram_gb": 16 }
+    ]
+  },
+  {
+    "name": "qwen2.5",
+    "description": "Alibaba's Qwen 2.5. Strong multilingual support, many size options.",
+    "category": "general",
+    "variants": [
+      { "tag": "0.5b", "parameters": "0.5B", "size_gb": 0.4, "ram_gb": 1 },
+      { "tag": "1.5b", "parameters": "1.5B", "size_gb": 1.0, "ram_gb": 2 },
+      { "tag": "3b", "parameters": "3B", "size_gb": 1.9, "ram_gb": 4 },
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.7, "ram_gb": 8 },
+      { "tag": "14b", "parameters": "14B", "size_gb": 9.0, "ram_gb": 16 },
+      { "tag": "32b", "parameters": "32B", "size_gb": 20, "ram_gb": 32 },
+      { "tag": "72b", "parameters": "72B", "size_gb": 47, "ram_gb": 72 }
+    ]
+  },
+  {
+    "name": "qwen3",
+    "description": "Alibaba's Qwen 3. Latest with hybrid thinking and non-thinking modes.",
+    "category": "general",
+    "variants": [
+      { "tag": "0.6b", "parameters": "0.6B", "size_gb": 0.5, "ram_gb": 1 },
+      { "tag": "1.7b", "parameters": "1.7B", "size_gb": 1.2, "ram_gb": 2 },
+      { "tag": "4b", "parameters": "4B", "size_gb": 2.6, "ram_gb": 5 },
+      { "tag": "8b", "parameters": "8B", "size_gb": 5.2, "ram_gb": 10 },
+      { "tag": "30b-a3b", "parameters": "30B-A3B", "size_gb": 18, "ram_gb": 20 },
+      { "tag": "235b-a22b", "parameters": "235B-A22B", "size_gb": 140, "ram_gb": 160 }
+    ]
+  },
+  {
+    "name": "command-r",
+    "description": "Cohere's Command R. Optimized for conversation and retrieval.",
+    "category": "general",
+    "variants": [
+      { "tag": "35b", "parameters": "35B", "size_gb": 20, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "command-r-plus",
+    "description": "Cohere's Command R+. Larger, more capable variant.",
+    "category": "general",
+    "variants": [
+      { "tag": "104b", "parameters": "104B", "size_gb": 60, "ram_gb": 96 }
+    ]
+  },
+  {
+    "name": "aya-expanse",
+    "description": "Cohere's Aya Expanse. Excellent multilingual model covering 23 languages.",
+    "category": "general",
+    "variants": [
+      { "tag": "8b", "parameters": "8B", "size_gb": 4.8, "ram_gb": 8 },
+      { "tag": "32b", "parameters": "32B", "size_gb": 19, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "tinyllama",
+    "description": "Tiny but functional. Good for testing or very limited hardware.",
+    "category": "general",
+    "variants": [
+      { "tag": "1.1b", "parameters": "1.1B", "size_gb": 0.6, "ram_gb": 2 }
+    ]
+  },
+  {
+    "name": "smollm2",
+    "description": "Hugging Face's SmolLM 2. Compact model for edge devices.",
+    "category": "general",
+    "variants": [
+      { "tag": "135m", "parameters": "135M", "size_gb": 0.1, "ram_gb": 1 },
+      { "tag": "360m", "parameters": "360M", "size_gb": 0.2, "ram_gb": 1 },
+      { "tag": "1.7b", "parameters": "1.7B", "size_gb": 1.0, "ram_gb": 2 }
+    ]
+  },
+  {
+    "name": "deepseek-r1",
+    "description": "DeepSeek's reasoning model. Shows step-by-step chain-of-thought.",
+    "category": "reasoning",
+    "variants": [
+      { "tag": "1.5b", "parameters": "1.5B", "size_gb": 1.1, "ram_gb": 3 },
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.7, "ram_gb": 8 },
+      { "tag": "8b", "parameters": "8B", "size_gb": 4.9, "ram_gb": 8 },
+      { "tag": "14b", "parameters": "14B", "size_gb": 9.0, "ram_gb": 16 },
+      { "tag": "32b", "parameters": "32B", "size_gb": 20, "ram_gb": 32 },
+      { "tag": "70b", "parameters": "70B", "size_gb": 43, "ram_gb": 64 },
+      { "tag": "671b", "parameters": "671B", "size_gb": 400, "ram_gb": 512 }
+    ]
+  },
+  {
+    "name": "qwq",
+    "description": "Alibaba's QwQ. Reasoning-focused model with strong analytical ability.",
+    "category": "reasoning",
+    "variants": [
+      { "tag": "32b", "parameters": "32B", "size_gb": 20, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "phi4-reasoning",
+    "description": "Microsoft's Phi-4 Reasoning. Fine-tuned for logical and math tasks.",
+    "category": "reasoning",
+    "variants": [
+      { "tag": "14b", "parameters": "14B", "size_gb": 9.1, "ram_gb": 16 }
+    ]
+  },
+  {
+    "name": "qwen2.5-coder",
+    "description": "Alibaba's Qwen 2.5 Coder. Specialized for code generation and understanding.",
+    "category": "code",
+    "variants": [
+      { "tag": "0.5b", "parameters": "0.5B", "size_gb": 0.4, "ram_gb": 1 },
+      { "tag": "1.5b", "parameters": "1.5B", "size_gb": 1.0, "ram_gb": 2 },
+      { "tag": "3b", "parameters": "3B", "size_gb": 1.9, "ram_gb": 4 },
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.7, "ram_gb": 8 },
+      { "tag": "14b", "parameters": "14B", "size_gb": 9.0, "ram_gb": 16 },
+      { "tag": "32b", "parameters": "32B", "size_gb": 20, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "codellama",
+    "description": "Meta's Code Llama. Built on Llama 2, fine-tuned for code.",
+    "category": "code",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 3.8, "ram_gb": 8 },
+      { "tag": "13b", "parameters": "13B", "size_gb": 7.4, "ram_gb": 14 },
+      { "tag": "34b", "parameters": "34B", "size_gb": 19, "ram_gb": 32 },
+      { "tag": "70b", "parameters": "70B", "size_gb": 39, "ram_gb": 64 }
+    ]
+  },
+  {
+    "name": "deepseek-coder-v2",
+    "description": "DeepSeek Coder V2. Strong code completion and generation.",
+    "category": "code",
+    "variants": [
+      { "tag": "16b", "parameters": "16B", "size_gb": 8.9, "ram_gb": 16 },
+      { "tag": "236b", "parameters": "236B", "size_gb": 133, "ram_gb": 192 }
+    ]
+  },
+  {
+    "name": "starcoder2",
+    "description": "BigCode's StarCoder 2. Trained on 600+ programming languages.",
+    "category": "code",
+    "variants": [
+      { "tag": "3b", "parameters": "3B", "size_gb": 1.7, "ram_gb": 4 },
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.0, "ram_gb": 8 },
+      { "tag": "15b", "parameters": "15B", "size_gb": 9.0, "ram_gb": 16 }
+    ]
+  },
+  {
+    "name": "codegemma",
+    "description": "Google's CodeGemma. Code-specialized variant of Gemma.",
+    "category": "code",
+    "variants": [
+      { "tag": "2b", "parameters": "2B", "size_gb": 1.6, "ram_gb": 4 },
+      { "tag": "7b", "parameters": "7B", "size_gb": 5.0, "ram_gb": 8 }
+    ]
+  },
+  {
+    "name": "devstral",
+    "description": "Mistral's Devstral. Purpose-built for software engineering tasks.",
+    "category": "code",
+    "variants": [
+      { "tag": "24b", "parameters": "24B", "size_gb": 14, "ram_gb": 24 }
+    ]
+  },
+  {
+    "name": "llava",
+    "description": "LLaVA (Large Language and Vision Assistant). Understands images and text.",
+    "category": "vision",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.7, "ram_gb": 8 },
+      { "tag": "13b", "parameters": "13B", "size_gb": 8.0, "ram_gb": 14 },
+      { "tag": "34b", "parameters": "34B", "size_gb": 20, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "llama3.2-vision",
+    "description": "Meta's Llama 3.2 with vision capabilities. Understands images.",
+    "category": "vision",
+    "variants": [
+      { "tag": "11b", "parameters": "11B", "size_gb": 7.9, "ram_gb": 14 },
+      { "tag": "90b", "parameters": "90B", "size_gb": 55, "ram_gb": 96 }
+    ]
+  },
+  {
+    "name": "moondream",
+    "description": "Tiny vision model. Surprisingly capable image understanding at minimal size.",
+    "category": "vision",
+    "variants": [
+      { "tag": "1.8b", "parameters": "1.8B", "size_gb": 1.7, "ram_gb": 4 }
+    ]
+  },
+  {
+    "name": "bakllava",
+    "description": "BakLLaVA. Enhanced LLaVA variant with improved visual understanding.",
+    "category": "vision",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.7, "ram_gb": 8 }
+    ]
+  },
+  {
+    "name": "minicpm-v",
+    "description": "OpenBMB's MiniCPM-V. Efficient multimodal model for vision tasks.",
+    "category": "vision",
+    "variants": [
+      { "tag": "8b", "parameters": "8B", "size_gb": 5.5, "ram_gb": 10 }
+    ]
+  },
+  {
+    "name": "granite3.2-vision",
+    "description": "IBM's Granite 3.2 Vision. Enterprise-grade multimodal model.",
+    "category": "vision",
+    "variants": [
+      { "tag": "2b", "parameters": "2B", "size_gb": 1.8, "ram_gb": 4 }
+    ]
+  },
+  {
+    "name": "nomic-embed-text",
+    "description": "Nomic's text embedding model. Great for search and retrieval (RAG).",
+    "category": "embedding",
+    "variants": [
+      { "tag": "latest", "parameters": "137M", "size_gb": 0.3, "ram_gb": 1 }
+    ]
+  },
+  {
+    "name": "mxbai-embed-large",
+    "description": "Mixedbread's embedding model. High-quality semantic embeddings.",
+    "category": "embedding",
+    "variants": [
+      { "tag": "latest", "parameters": "335M", "size_gb": 0.7, "ram_gb": 1 }
+    ]
+  },
+  {
+    "name": "all-minilm",
+    "description": "Sentence Transformers' MiniLM. Fast, lightweight embeddings.",
+    "category": "embedding",
+    "variants": [
+      { "tag": "latest", "parameters": "23M", "size_gb": 0.05, "ram_gb": 1 }
+    ]
+  },
+  {
+    "name": "snowflake-arctic-embed",
+    "description": "Snowflake's Arctic Embed. Optimized for retrieval and search.",
+    "category": "embedding",
+    "variants": [
+      { "tag": "33m", "parameters": "33M", "size_gb": 0.07, "ram_gb": 1 },
+      { "tag": "110m", "parameters": "110M", "size_gb": 0.2, "ram_gb": 1 },
+      { "tag": "335m", "parameters": "335M", "size_gb": 0.7, "ram_gb": 1 }
+    ]
+  },
+  {
+    "name": "granite3.2",
+    "description": "IBM's Granite 3.2. Enterprise-focused with tool use support.",
+    "category": "general",
+    "variants": [
+      { "tag": "2b", "parameters": "2B", "size_gb": 1.6, "ram_gb": 4 },
+      { "tag": "8b", "parameters": "8B", "size_gb": 4.9, "ram_gb": 8 }
+    ]
+  },
+  {
+    "name": "nemotron",
+    "description": "NVIDIA's Nemotron. High performance reasoning model.",
+    "category": "reasoning",
+    "variants": [
+      { "tag": "49b", "parameters": "49B", "size_gb": 29, "ram_gb": 48 },
+      { "tag": "70b", "parameters": "70B", "size_gb": 43, "ram_gb": 64 }
+    ]
+  },
+  {
+    "name": "falcon3",
+    "description": "TII's Falcon 3. Open-weight model with competitive performance.",
+    "category": "general",
+    "variants": [
+      { "tag": "1b", "parameters": "1B", "size_gb": 0.8, "ram_gb": 2 },
+      { "tag": "3b", "parameters": "3B", "size_gb": 2.0, "ram_gb": 4 },
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.5, "ram_gb": 8 },
+      { "tag": "10b", "parameters": "10B", "size_gb": 6.4, "ram_gb": 12 }
+    ]
+  },
+  {
+    "name": "yi",
+    "description": "01.AI's Yi. Strong multilingual model with Chinese language support.",
+    "category": "general",
+    "variants": [
+      { "tag": "6b", "parameters": "6B", "size_gb": 3.5, "ram_gb": 6 },
+      { "tag": "9b", "parameters": "9B", "size_gb": 5.3, "ram_gb": 10 },
+      { "tag": "34b", "parameters": "34B", "size_gb": 19, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "vicuna",
+    "description": "LMSYS Vicuna. Fine-tuned Llama, strong conversational ability.",
+    "category": "general",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 3.8, "ram_gb": 8 },
+      { "tag": "13b", "parameters": "13B", "size_gb": 7.4, "ram_gb": 14 },
+      { "tag": "33b", "parameters": "33B", "size_gb": 19, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "neural-chat",
+    "description": "Intel's Neural Chat. Optimized for conversational AI.",
+    "category": "general",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.1, "ram_gb": 8 }
+    ]
+  },
+  {
+    "name": "openchat",
+    "description": "OpenChat. Fine-tuned for helpful, safe conversation.",
+    "category": "general",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.1, "ram_gb": 8 }
+    ]
+  },
+  {
+    "name": "dolphin-mixtral",
+    "description": "Dolphin Mixtral. Uncensored mixture-of-experts model.",
+    "category": "general",
+    "variants": [
+      { "tag": "8x7b", "parameters": "8x7B", "size_gb": 26, "ram_gb": 48 },
+      { "tag": "8x22b", "parameters": "8x22B", "size_gb": 80, "ram_gb": 128 }
+    ]
+  },
+  {
+    "name": "wizard-vicuna-uncensored",
+    "description": "Uncensored Wizard Vicuna. No content filtering applied.",
+    "category": "general",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 3.8, "ram_gb": 8 },
+      { "tag": "13b", "parameters": "13B", "size_gb": 7.4, "ram_gb": 14 },
+      { "tag": "30b", "parameters": "30B", "size_gb": 18, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "wizardcoder",
+    "description": "WizardLM's WizardCoder. Instruction-tuned for code tasks.",
+    "category": "code",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 3.8, "ram_gb": 8 },
+      { "tag": "13b", "parameters": "13B", "size_gb": 7.4, "ram_gb": 14 },
+      { "tag": "33b", "parameters": "33B", "size_gb": 19, "ram_gb": 32 }
+    ]
+  },
+  {
+    "name": "sqlcoder",
+    "description": "Defog's SQLCoder. Specialized in generating SQL from natural language.",
+    "category": "code",
+    "variants": [
+      { "tag": "7b", "parameters": "7B", "size_gb": 4.1, "ram_gb": 8 },
+      { "tag": "15b", "parameters": "15B", "size_gb": 8.6, "ram_gb": 16 }
+    ]
+  },
+  {
+    "name": "stable-code",
+    "description": "Stability AI's Stable Code. Code completion and generation.",
+    "category": "code",
+    "variants": [
+      { "tag": "3b", "parameters": "3B", "size_gb": 1.6, "ram_gb": 4 }
+    ]
+  }
+]

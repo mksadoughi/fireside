@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" fill="none">
+  <!-- Concept 4: Radial/orbital — The Host's machine is a glowing core in the center, clients orbit around it like satellites. Minimal, abstract, elegant. -->
+  <style>
+    .label { font-family: system-ui, -apple-system, sans-serif; font-size: 11.5px; fill: currentColor; opacity: 0.5; }
+    .label-bold { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: currentColor; font-weight: 600; opacity: 0.8; }
+    .label-center { font-family: system-ui, -apple-system, sans-serif; fill: currentColor; text-anchor: middle; }
+  </style>
+
+  <defs>
+    <radialGradient id="core-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b00" stop-opacity="0.12"/>
+      <stop offset="40%" stop-color="#ff6b00" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#ff6b00" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Orbital rings -->
+  <ellipse cx="400" cy="200" rx="280" ry="160" stroke="currentColor" stroke-opacity="0.04" stroke-width="1" fill="none"/>
+  <ellipse cx="400" cy="200" rx="180" ry="105" stroke="currentColor" stroke-opacity="0.06" stroke-width="1" fill="none"/>
+
+  <!-- Core glow -->
+  <circle cx="400" cy="200" r="120" fill="url(#core-glow)"/>
+
+  <!-- Core circle (Host) -->
+  <circle cx="400" cy="200" r="55" stroke="#ff6b00" stroke-opacity="0.2" stroke-width="1.5" fill="#ff6b00" fill-opacity="0.04"/>
+  <circle cx="400" cy="200" r="35" stroke="#ff6b00" stroke-opacity="0.1" stroke-width="1" fill="#ff6b00" fill-opacity="0.03"/>
+
+  <!-- Flame in center -->
+  <g transform="translate(400, 188)">
+    <path d="M0,-18 C-3,-12 -10,-7 -10,3 C-10,9 -5,14 0,14 C5,14 10,9 10,3 C10,-7 3,-12 0,-18Z" fill="#ff6b00" opacity="0.35"/>
+    <path d="M0,-10 C-2,-6 -5,-3 -5,2 C-5,5 -3,8 0,8 C3,8 5,5 5,2 C5,-3 2,-6 0,-10Z" fill="#ff8c3a" opacity="0.5"/>
+  </g>
+
+  <text x="400" y="218" class="label-center" style="font-size: 10px; opacity: 0.45; font-weight: 500">HOST</text>
+
+  <!-- Satellites (Clients) on the orbits -->
+
+  <!-- Client 1: top — on inner orbit -->
+  <g transform="translate(400, 95)">
+    <circle r="22" stroke="currentColor" stroke-opacity="0.1" fill="currentColor" fill-opacity="0.03"/>
+    <!-- Phone icon -->
+    <rect x="-5" y="-10" width="10" height="16" rx="2" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.1" fill="none"/>
+    <line x1="-2" y1="3" x2="2" y2="3" stroke="currentColor" stroke-opacity="0.2" stroke-width="0.8"/>
+  </g>
+  <text x="400" y="130" text-anchor="middle" class="label">Phone</text>
+
+  <!-- Client 2: right — on outer orbit -->
+  <g transform="translate(680, 200)">
+    <circle r="22" stroke="currentColor" stroke-opacity="0.1" fill="currentColor" fill-opacity="0.03"/>
+    <!-- Laptop icon -->
+    <rect x="-8" y="-7" width="16" height="10" rx="1.5" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.1" fill="none"/>
+    <line x1="-10" y1="5" x2="10" y2="5" stroke="currentColor" stroke-opacity="0.2" stroke-width="1"/>
+  </g>
+  <text x="680" y="235" text-anchor="middle" class="label">Laptop</text>
+
+  <!-- Client 3: bottom-left — on outer orbit -->
+  <g transform="translate(175, 310)">
+    <circle r="22" stroke="currentColor" stroke-opacity="0.1" fill="currentColor" fill-opacity="0.03"/>
+    <!-- Tablet icon -->
+    <rect x="-7" y="-9" width="14" height="18" rx="2" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.1" fill="none"/>
+  </g>
+  <text x="175" y="345" text-anchor="middle" class="label">Tablet</text>
+
+  <!-- Client 4: bottom-right — on inner orbit -->
+  <g transform="translate(540, 280)">
+    <circle r="22" stroke="currentColor" stroke-opacity="0.1" fill="currentColor" fill-opacity="0.03"/>
+    <!-- Terminal icon -->
+    <text x="0" y="4" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor" opacity="0.35">&gt;_</text>
+  </g>
+  <text x="540" y="315" text-anchor="middle" class="label">API</text>
+
+  <!-- Client 5: left — on outer orbit -->
+  <g transform="translate(120, 200)">
+    <circle r="22" stroke="currentColor" stroke-opacity="0.1" fill="currentColor" fill-opacity="0.03"/>
+    <!-- Desktop icon -->
+    <rect x="-8" y="-8" width="16" height="11" rx="1.5" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.1" fill="none"/>
+    <line x1="-4" y1="5" x2="4" y2="5" stroke="currentColor" stroke-opacity="0.2" stroke-width="1"/>
+    <line x1="0" y1="3" x2="0" y2="8" stroke="currentColor" stroke-opacity="0.2" stroke-width="1"/>
+  </g>
+  <text x="120" y="235" text-anchor="middle" class="label">Desktop</text>
+
+  <!-- Encrypted connection indicators — small lock icons on the orbits -->
+  <g transform="translate(310, 135)">
+    <rect x="-3" y="0" width="6" height="5" rx="1" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="0.8" fill="none"/>
+    <path d="M-1.5,0 L-1.5,-2 A1.5,1.5 0 0,1 1.5,-2 L1.5,0" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="0.8" fill="none"/>
+  </g>
+  <g transform="translate(550, 145)">
+    <rect x="-3" y="0" width="6" height="5" rx="1" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="0.8" fill="none"/>
+    <path d="M-1.5,0 L-1.5,-2 A1.5,1.5 0 0,1 1.5,-2 L1.5,0" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="0.8" fill="none"/>
+  </g>
+  <g transform="translate(255, 270)">
+    <rect x="-3" y="0" width="6" height="5" rx="1" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="0.8" fill="none"/>
+    <path d="M-1.5,0 L-1.5,-2 A1.5,1.5 0 0,1 1.5,-2 L1.5,0" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="0.8" fill="none"/>
+  </g>
+
+  <!-- Bottom tagline -->
+  <text x="400" y="385" text-anchor="middle" class="label" style="opacity: 0.3; font-size: 11px">One machine. Everyone connected. Everything encrypted.</text>
+</svg>

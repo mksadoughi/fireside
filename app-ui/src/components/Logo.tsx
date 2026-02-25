@@ -1,0 +1,41 @@
+export function Logo({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <linearGradient
+          id="flame-gradient"
+          x1="12"
+          y1="2"
+          x2="12"
+          y2="18"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#ff6b00" />
+          <stop offset="1" stopColor="#ffb000" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 2C12 2 6 7.5 6 12C6 15.3137 8.68629 18 12 18C15.3137 18 18 15.3137 18 12C18 7.5 12 2 12 2Z"
+        stroke="url(#flame-gradient)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 9C12 9 9.5 11 9.5 13.5C9.5 14.8807 10.6193 16 12 16C13.3807 16 14.5 14.8807 14.5 13.5C14.5 11 12 9 12 9Z"
+        fill="#ff6b00"
+      />
+      <path
+        d="M4 21H20"
+        stroke="#00e5ff"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
